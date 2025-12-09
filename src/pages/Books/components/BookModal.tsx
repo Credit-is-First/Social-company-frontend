@@ -31,6 +31,7 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
     isEbook: false,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     if (book) {
@@ -65,6 +66,13 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+    
+    setIsSubmitting(true);
     try {
       const bookData: CreateBookDto = {
         title: formData.title,
@@ -84,10 +92,11 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
       }
       notify.success(book ? 'Book updated successfully' : 'Book created successfully');
       onClose();
-      window.location.reload();
     } catch (error: any) {
       console.error('Error saving book:', error);
       notify.error(error.response?.data?.message || 'Error saving book');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -222,9 +231,12 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              disabled={isSubmitting}
+              className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              {book ? 'Update' : 'Create'}
+              {isSubmitting ? (book ? 'Updating...' : 'Creating...') : (book ? 'Update' : 'Create')}
             </button>
           </div>
         </form>

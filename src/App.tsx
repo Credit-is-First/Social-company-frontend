@@ -17,7 +17,7 @@ import Setup from './pages/Setup';
 import { usersAPI } from './services/api';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, hasRole } = useAuth();
   const { showToast, toasts, removeToast } = useToast();
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [checkingSetup, setCheckingSetup] = useState<boolean>(true);
@@ -80,18 +80,24 @@ const AppContent: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <Link to="/" className="hover:text-blue-200 transition">Dashboard</Link>
                 <Link to="/books" className="hover:text-blue-200 transition">Books</Link>
-                {(user?.role === 'admin' || user?.role === 'librarian') && (
+                {(hasRole('admin') || hasRole('librarian')) && (
                   <>
                     <Link to="/users" className="hover:text-blue-200 transition">Users</Link>
                     <Link to="/loans" className="hover:text-blue-200 transition">Loans</Link>
                   </>
                 )}
-                {user?.role === 'admin' && (
+                {hasRole('admin') && (
                   <Link to="/admin" className="hover:text-blue-200 transition">Admin</Link>
                 )}
                 <div className="flex items-center space-x-2">
                   <span className="text-sm">Welcome, {user?.name}</span>
-                  <span className="text-xs bg-blue-500 px-2 py-1 rounded">{user?.role}</span>
+                  <div className="flex space-x-1">
+                    {user?.roles?.map((role) => (
+                      <span key={role.id} className="text-xs bg-blue-500 px-2 py-1 rounded">
+                        {role.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <button
                   onClick={logout}

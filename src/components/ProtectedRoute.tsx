@@ -1,10 +1,9 @@
 import React from 'react';
 import { Route, Redirect, RouteProps } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserRole } from '../types';
 
 interface ProtectedRouteProps extends RouteProps {
-  roles?: (UserRole | string)[];
+  roles?: string[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles, ...rest }) => {
@@ -22,8 +21,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles, ...res
     return <Redirect to="/login" />;
   }
 
-  if (roles && user && user.role && !roles.includes(user.role)) {
-    return <Redirect to="/" />;
+  if (roles && user && user.roles) {
+    const userRoleNames = user.roles.map(role => role.name);
+    const hasRequiredRole = roles.some(role => userRoleNames.includes(role));
+    if (!hasRequiredRole) {
+      return <Redirect to="/" />;
+    }
   }
 
   return <Route {...rest}>{children}</Route>;

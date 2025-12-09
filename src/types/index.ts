@@ -10,6 +10,17 @@ export interface Book {
   publishedDate?: string;
   isEbook?: boolean;
   filePath?: string;
+  isApproved?: boolean;
+  approvedBy?: number;
+  approvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,7 +37,7 @@ export interface User {
   email: string;
   phone: string;
   address?: string;
-  role?: UserRole;
+  roles?: Role[];
   createdAt: string;
   updatedAt: string;
 }
@@ -68,7 +79,7 @@ export interface CreateUserDto {
 }
 
 export interface UpdateUserDto extends Partial<CreateUserDto> {
-  role?: UserRole;
+  roleIds?: number[];
 }
 
 export interface CreateLoanDto {

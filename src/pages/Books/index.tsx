@@ -4,24 +4,37 @@ import { Book } from '../../types';
 import BookModal from './components/BookModal';
 import { notify } from '../../utils/notifications';
 import { useConfirmDialog } from '../../utils/confirmDialog';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Books: React.FC = () => {
+  const { hasRole, user } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
+  const [allBooks, setAllBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [showPendingOnly, setShowPendingOnly] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const { confirm, Dialog } = useConfirmDialog();
-
-  useEffect(() => {
-    fetchBooks();
-  }, [searchTerm]);
 
   const fetchBooks = async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await booksAPI.getAll(searchTerm || undefined);
-      setBooks(response.data);
+      setAllBooks(response.data);
+      
+      // Filter books based on user role
+      if (hasRole('admin') || hasRole('librarian')) {
+        // Admins and librarians see all books
+        if (showPendingOnly) {
+          setBooks(response.data.filter(book => !book.isApproved));
+        } else {
+          setBooks(response.data);
+        }
+      } else {
+        // Regular users only see approved books
+        setBooks(response.data.filter(book => book.isApproved));
+      }
     } catch (error) {
       console.error('Error fetching books:', error);
       notify.error('Error fetching books');
@@ -29,6 +42,10 @@ const Books: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchBooks();
+  }, [searchTerm, showPendingOnly]);
 
   const handleCreate = (): void => {
     setEditingBook(null);
@@ -64,6 +81,23 @@ const Books: React.FC = () => {
     fetchBooks();
   };
 
+  const handleApprove = async (id: number): Promise<void> => {
+    confirm(
+      'Approve Book',
+      'Are you sure you want to approve this book?',
+      async () => {
+        try {
+          await booksAPI.approve(id);
+          notify.success('Book approved successfully');
+          fetchBooks();
+        } catch (error: any) {
+          console.error('Error approving book:', error);
+          notify.error(error.response?.data?.message || 'Error approving book');
+        }
+      }
+    );
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -76,14 +110,26 @@ const Books: React.FC = () => {
         </button>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex space-x-2">
         <input
           type="text"
           placeholder="Search books by title, author, ISBN, or category..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        {(hasRole('admin') || hasRole('librarian')) && (
+          <button
+            onClick={() => setShowPendingOnly(!showPendingOnly)}
+            className={`px-4 py-2 rounded transition ${
+              showPendingOnly
+                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {showPendingOnly ? 'Show All' : 'Show Pending'}
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -92,7 +138,19 @@ const Books: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {books.map((book) => (
             <div key={book.id} className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-xl font-semibold mb-2">{book.title}</h3>
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-semibold">{book.title}</h3>
+                {!book.isApproved && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                    Pending Approval
+                  </span>
+                )}
+                {book.isApproved && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                    Approved
+                  </span>
+                )}
+              </div>
               <p className="text-gray-600 mb-1">Author: {book.author}</p>
               <p className="text-gray-600 mb-1">ISBN: {book.isbn}</p>
               <p className="text-gray-600 mb-1">Category: {book.category}</p>
@@ -104,19 +162,33 @@ const Books: React.FC = () => {
                 }`}>
                   {book.availableCopies} / {book.totalCopies} available
                 </span>
-                <div className="space-x-2">
-                  <button
-                    onClick={() => handleEdit(book)}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(book.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Delete
-                  </button>
+                <div className="flex flex-col items-end space-y-1">
+                  <div className="space-x-2">
+                    {(hasRole('admin') || hasRole('librarian')) && (
+                      <button
+                        onClick={() => handleEdit(book)}
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {(hasRole('admin') || hasRole('librarian')) && (
+                      <button
+                        onClick={() => handleDelete(book.id)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                  {!book.isApproved && hasRole('librarian') && (
+                    <button
+                      onClick={() => handleApprove(book.id)}
+                      className="text-green-600 hover:text-green-800 text-sm font-medium"
+                    >
+                      ✓ Approve
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

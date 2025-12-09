@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { Book, User, Loan, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse } from '../types';
+import { Book, User, Loan, Role, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -19,7 +19,8 @@ export const booksAPI = {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       const value = data[key as keyof CreateBookDto];
-      if (value !== undefined && value !== null) {
+      // Skip empty strings for optional fields
+      if (value !== undefined && value !== null && value !== '') {
         formData.append(key, value.toString());
       }
     });
@@ -36,7 +37,8 @@ export const booksAPI = {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       const value = data[key as keyof UpdateBookDto];
-      if (value !== undefined && value !== null) {
+      // Skip empty strings for optional fields
+      if (value !== undefined && value !== null && value !== '') {
         formData.append(key, value.toString());
       }
     });
@@ -51,6 +53,8 @@ export const booksAPI = {
   },
   delete: (id: number): Promise<AxiosResponse<void>> => 
     api.delete(`/books/${id}`),
+  approve: (id: number): Promise<AxiosResponse<Book>> => 
+    api.patch(`/books/${id}/approve`),
 };
 
 export const usersAPI = {
@@ -66,6 +70,13 @@ export const usersAPI = {
     api.delete(`/users/${id}`),
   checkSetup: (): Promise<AxiosResponse<{ needsSetup: boolean }>> => 
     api.get('/users/check-setup'),
+  updateRoles: (id: number, roleIds: number[]): Promise<AxiosResponse<User>> => 
+    api.patch(`/users/${id}/roles`, { roleIds }),
+};
+
+export const rolesAPI = {
+  getAll: (): Promise<AxiosResponse<Role[]>> => 
+    api.get('/roles'),
 };
 
 export const loansAPI = {
