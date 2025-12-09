@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { loansAPI, booksAPI, usersAPI } from '../services/api';
 import { Loan, Book, User, CreateLoanDto } from '../types';
+import { notify } from '../utils/notifications';
 
 interface LoanModalProps {
   loan: Loan | null;
@@ -59,7 +60,7 @@ const LoanModal: React.FC<LoanModalProps> = ({ loan, onClose }) => {
       setUsers(usersRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
-      alert('Error loading data');
+      notify.error('Error loading data');
     } finally {
       setLoading(false);
     }
@@ -89,10 +90,11 @@ const LoanModal: React.FC<LoanModalProps> = ({ loan, onClose }) => {
         };
         await loansAPI.create(loanData);
       }
+      notify.success(loan ? 'Loan updated successfully' : 'Loan created successfully');
       onClose();
     } catch (error: any) {
       console.error('Error saving loan:', error);
-      alert(error.response?.data?.message || 'Error saving loan');
+      notify.error(error.response?.data?.message || 'Error saving loan');
     }
   };
 

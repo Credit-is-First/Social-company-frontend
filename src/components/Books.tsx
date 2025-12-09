@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { booksAPI } from '../services/api';
 import { Book } from '../types';
 import BookModal from './BookModal';
+import { notify } from '../utils/notifications';
+import { useConfirmDialog } from '../utils/confirmDialog';
 
 const Books: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
@@ -9,6 +11,7 @@ const Books: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const { confirm, Dialog } = useConfirmDialog();
 
   useEffect(() => {
     fetchBooks();
@@ -21,7 +24,7 @@ const Books: React.FC = () => {
       setBooks(response.data);
     } catch (error) {
       console.error('Error fetching books:', error);
-      alert('Error fetching books');
+      notify.error('Error fetching books');
     } finally {
       setLoading(false);
     }
@@ -38,15 +41,21 @@ const Books: React.FC = () => {
   };
 
   const handleDelete = async (id: number): Promise<void> => {
-    if (window.confirm('Are you sure you want to delete this book?')) {
-      try {
-        await booksAPI.delete(id);
-        fetchBooks();
-      } catch (error) {
-        console.error('Error deleting book:', error);
-        alert('Error deleting book');
-      }
-    }
+    confirm(
+      'Delete Book',
+      'Are you sure you want to delete this book? This action cannot be undone.',
+      async () => {
+        try {
+          await booksAPI.delete(id);
+          notify.success('Book deleted successfully');
+          fetchBooks();
+        } catch (error) {
+          console.error('Error deleting book:', error);
+          notify.error('Error deleting book');
+        }
+      },
+      { confirmText: 'Delete', confirmColor: 'red' }
+    );
   };
 
   const handleModalClose = (): void => {
@@ -121,6 +130,7 @@ const Books: React.FC = () => {
           onClose={handleModalClose}
         />
       )}
+      <Dialog />
     </div>
   );
 };

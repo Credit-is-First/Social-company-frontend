@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Switch, Link, Redirect } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider, useToast } from './contexts/ToastContext';
+import ToastContainer from './components/ToastContainer';
+import { setToastContext } from './utils/notifications';
 import Books from './components/Books';
 import Users from './components/Users';
 import Loans from './components/Loans';
@@ -15,8 +18,14 @@ import { usersAPI } from './services/api';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
+  const { showToast, toasts, removeToast } = useToast();
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [checkingSetup, setCheckingSetup] = useState<boolean>(true);
+
+  // Initialize toast context for notify utility
+  useEffect(() => {
+    setToastContext({ showToast });
+  }, [showToast]);
 
   useEffect(() => {
     const checkSetup = async () => {
@@ -112,6 +121,7 @@ const AppContent: React.FC = () => {
           </Route>
         </Switch>
       </main>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 };
@@ -119,9 +129,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ToastProvider>
     </Router>
   );
 };

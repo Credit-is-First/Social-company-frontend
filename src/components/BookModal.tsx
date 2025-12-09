@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { booksAPI } from '../services/api';
 import { Book, CreateBookDto } from '../types';
+import { notify } from '../utils/notifications';
 
 interface BookModalProps {
   book: Book | null;
@@ -81,11 +82,12 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
       } else {
         await booksAPI.create(bookData, selectedFile || undefined);
       }
+      notify.success(book ? 'Book updated successfully' : 'Book created successfully');
       onClose();
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving book:', error);
-      alert('Error saving book');
+      notify.error(error.response?.data?.message || 'Error saving book');
     }
   };
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usersAPI } from '../services/api';
 import { User } from '../types';
 import UserModal from './UserModal';
+import { notify } from '../utils/notifications';
+import { useConfirmDialog } from '../utils/confirmDialog';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -9,6 +11,7 @@ const Users: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const { confirm, Dialog } = useConfirmDialog();
 
   useEffect(() => {
     fetchUsers();
@@ -21,7 +24,7 @@ const Users: React.FC = () => {
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      alert('Error fetching users');
+      notify.error('Error fetching users');
     } finally {
       setLoading(false);
     }
@@ -38,15 +41,21 @@ const Users: React.FC = () => {
   };
 
   const handleDelete = async (id: number): Promise<void> => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await usersAPI.delete(id);
-        fetchUsers();
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Error deleting user');
-      }
-    }
+    confirm(
+      'Delete User',
+      'Are you sure you want to delete this user? This action cannot be undone.',
+      async () => {
+        try {
+          await usersAPI.delete(id);
+          notify.success('User deleted successfully');
+          fetchUsers();
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          notify.error('Error deleting user');
+        }
+      },
+      { confirmText: 'Delete', confirmColor: 'red' }
+    );
   };
 
   const handleModalClose = (): void => {
@@ -123,6 +132,7 @@ const Users: React.FC = () => {
           onClose={handleModalClose}
         />
       )}
+      <Dialog />
     </div>
   );
 };

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usersAPI } from '../services/api';
 import { User, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { notify } from '../utils/notifications';
+import { useConfirmDialog } from '../utils/confirmDialog';
 
 const Admin: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -9,6 +11,7 @@ const Admin: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
+  const { confirm, Dialog } = useConfirmDialog();
 
   useEffect(() => {
     fetchUsers();
@@ -21,7 +24,7 @@ const Admin: React.FC = () => {
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      alert('Error fetching users');
+      notify.error('Error fetching users');
     } finally {
       setLoading(false);
     }
@@ -30,25 +33,27 @@ const Admin: React.FC = () => {
   const handleRoleChange = async (userId: number, newRole: UserRole): Promise<void> => {
     // Prevent admin from changing their own role
     if (userId === currentUser?.id) {
-      alert('You cannot change your own role');
+      notify.warning('You cannot change your own role');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
-      return;
-    }
-
-    try {
-      setUpdatingUserId(userId);
-      await usersAPI.update(userId, { role: newRole });
-      await fetchUsers();
-      alert('User role updated successfully');
-    } catch (error: any) {
-      console.error('Error updating user role:', error);
-      alert(error.response?.data?.message || 'Error updating user role');
-    } finally {
-      setUpdatingUserId(null);
-    }
+    confirm(
+      'Change User Role',
+      `Are you sure you want to change this user's role to ${newRole}?`,
+      async () => {
+        try {
+          setUpdatingUserId(userId);
+          await usersAPI.update(userId, { role: newRole });
+          await fetchUsers();
+          notify.success('User role updated successfully');
+        } catch (error: any) {
+          console.error('Error updating user role:', error);
+          notify.error(error.response?.data?.message || 'Error updating user role');
+        } finally {
+          setUpdatingUserId(null);
+        }
+      }
+    );
   };
 
   const getRoleBadgeColor = (role: UserRole | undefined): string => {
@@ -164,6 +169,7 @@ const Admin: React.FC = () => {
           </div>
         </div>
       )}
+      <Dialog />
     </div>
   );
 };

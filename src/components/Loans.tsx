@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { loansAPI } from '../services/api';
 import { Loan, LoanStatus } from '../types';
 import LoanModal from './LoanModal';
+import { notify } from '../utils/notifications';
+import { useConfirmDialog } from '../utils/confirmDialog';
 
 type FilterType = 'all' | 'active';
 
@@ -11,6 +13,7 @@ const Loans: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
+  const { confirm, Dialog } = useConfirmDialog();
 
   useEffect(() => {
     fetchLoans();
@@ -28,7 +31,7 @@ const Loans: React.FC = () => {
       setLoans(response.data);
     } catch (error) {
       console.error('Error fetching loans:', error);
-      alert('Error fetching loans');
+      notify.error('Error fetching loans');
     } finally {
       setLoading(false);
     }
@@ -40,30 +43,41 @@ const Loans: React.FC = () => {
   };
 
   const handleReturn = async (loan: Loan): Promise<void> => {
-    if (window.confirm('Mark this loan as returned?')) {
-      try {
-        await loansAPI.update(loan.id, {
-          returnDate: new Date().toISOString().split('T')[0],
-          status: 'returned' as LoanStatus,
-        });
-        fetchLoans();
-      } catch (error) {
-        console.error('Error returning loan:', error);
-        alert('Error returning loan');
+    confirm(
+      'Return Loan',
+      'Mark this loan as returned?',
+      async () => {
+        try {
+          await loansAPI.update(loan.id, {
+            returnDate: new Date().toISOString().split('T')[0],
+            status: 'returned' as LoanStatus,
+          });
+          notify.success('Loan marked as returned');
+          fetchLoans();
+        } catch (error) {
+          console.error('Error returning loan:', error);
+          notify.error('Error returning loan');
+        }
       }
-    }
+    );
   };
 
   const handleDelete = async (id: number): Promise<void> => {
-    if (window.confirm('Are you sure you want to delete this loan?')) {
-      try {
-        await loansAPI.delete(id);
-        fetchLoans();
-      } catch (error) {
-        console.error('Error deleting loan:', error);
-        alert('Error deleting loan');
-      }
-    }
+    confirm(
+      'Delete Loan',
+      'Are you sure you want to delete this loan? This action cannot be undone.',
+      async () => {
+        try {
+          await loansAPI.delete(id);
+          notify.success('Loan deleted successfully');
+          fetchLoans();
+        } catch (error) {
+          console.error('Error deleting loan:', error);
+          notify.error('Error deleting loan');
+        }
+      },
+      { confirmText: 'Delete', confirmColor: 'red' }
+    );
   };
 
   const handleModalClose = (): void => {
@@ -193,6 +207,7 @@ const Loans: React.FC = () => {
           onClose={handleModalClose}
         />
       )}
+      <Dialog />
     </div>
   );
 };

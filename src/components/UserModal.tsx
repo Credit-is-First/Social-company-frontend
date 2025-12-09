@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { usersAPI } from '../services/api';
 import { User, CreateUserDto } from '../types';
+import { notify } from '../utils/notifications';
 
 interface UserModalProps {
   user: User | null;
@@ -56,10 +57,11 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
       } else {
         await usersAPI.create(userData);
       }
+      notify.success(user ? 'User updated successfully' : 'User created successfully');
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving user:', error);
-      alert('Error saving user');
+      notify.error(error.response?.data?.message || 'Error saving user');
     }
   };
 
