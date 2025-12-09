@@ -8,8 +8,16 @@ export interface Book {
   availableCopies: number;
   description?: string;
   publishedDate?: string;
+  isEbook?: boolean;
+  filePath?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export enum UserRole {
+  ADMIN = 'admin',
+  LIBRARIAN = 'librarian',
+  USER = 'user',
 }
 
 export interface User {
@@ -18,6 +26,7 @@ export interface User {
   email: string;
   phone: string;
   address?: string;
+  role?: UserRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +55,7 @@ export interface CreateBookDto {
   totalCopies: number;
   description?: string;
   publishedDate?: string;
+  isEbook?: boolean;
 }
 
 export interface UpdateBookDto extends Partial<CreateBookDto> {}
@@ -69,5 +79,37 @@ export interface CreateLoanDto {
 export interface UpdateLoanDto {
   returnDate?: string;
   status?: LoanStatus;
+}
+
+export interface RegisterDto {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  address?: string;
+  role?: UserRole;
+  securityQuestion: string;
+  securityAnswer: string;
+}
+
+export interface LoginDto {
+  email: string;
+  password: string;
+}
+
+export interface ResetPasswordDto {
+  email: string;
+  securityAnswer: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  access_token: string;
 }
 

@@ -15,6 +15,7 @@ interface BookFormData {
   totalCopies: number;
   description: string;
   publishedDate: string;
+  isEbook: boolean;
 }
 
 const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
@@ -26,7 +27,9 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
     totalCopies: 1,
     description: '',
     publishedDate: '',
+    isEbook: false,
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (book) {
@@ -38,16 +41,25 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
         totalCopies: book.totalCopies || 1,
         description: book.description || '',
         publishedDate: book.publishedDate ? book.publishedDate.split('T')[0] : '',
+        isEbook: book.isEbook || false,
       });
+      setSelectedFile(null);
     }
   }, [book]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData({
       ...formData,
-      [name]: name === 'totalCopies' ? parseInt(value) || 1 : value,
+      [name]: type === 'checkbox' ? checked : (name === 'totalCopies' ? parseInt(value) || 1 : value),
     });
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -61,14 +73,16 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
         totalCopies: formData.totalCopies,
         description: formData.description || undefined,
         publishedDate: formData.publishedDate || undefined,
+        isEbook: formData.isEbook,
       };
 
       if (book) {
-        await booksAPI.update(book.id, bookData);
+        await booksAPI.update(book.id, bookData, selectedFile || undefined);
       } else {
-        await booksAPI.create(bookData);
+        await booksAPI.create(bookData, selectedFile || undefined);
       }
       onClose();
+      window.location.reload();
     } catch (error) {
       console.error('Error saving book:', error);
       alert('Error saving book');
@@ -165,6 +179,36 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          <div className="mb-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                name="isEbook"
+                checked={formData.isEbook}
+                onChange={handleChange}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium">E-book</span>
+            </label>
+          </div>
+
+          {formData.isEbook && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">E-book File (PDF, EPUB, MOBI)</label>
+              <input
+                type="file"
+                accept=".pdf,.epub,.mobi,application/pdf,application/epub+zip,application/x-mobipocket-ebook"
+                onChange={handleFileChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {book?.filePath && !selectedFile && (
+                <p className="mt-2 text-sm text-gray-600">
+                  Current file: <a href={`http://localhost:3001${book.filePath}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current file</a>
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3">
             <button
