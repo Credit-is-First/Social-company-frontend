@@ -67,7 +67,9 @@ export interface CreateUserDto {
   address?: string;
 }
 
-export interface UpdateUserDto extends Partial<CreateUserDto> {}
+export interface UpdateUserDto extends Partial<CreateUserDto> {
+  role?: UserRole;
+}
 
 export interface CreateLoanDto {
   bookId: number;

@@ -89,6 +89,15 @@ const Users: React.FC = () => {
               {user.address && (
                 <p className="text-gray-600 mb-1">Address: {user.address}</p>
               )}
+              <div className="mt-2">
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                  user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                  user.role === 'librarian' ? 'bg-blue-100 text-blue-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {user.role || 'user'}
+                </span>
+              </div>
               <div className="flex justify-end space-x-2 mt-4">
                 <button
                   onClick={() => handleEdit(user)}

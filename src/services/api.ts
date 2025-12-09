@@ -64,6 +64,8 @@ export const usersAPI = {
     api.patch(`/users/${id}`, data),
   delete: (id: number): Promise<AxiosResponse<void>> => 
     api.delete(`/users/${id}`),
+  checkSetup: (): Promise<AxiosResponse<{ needsSetup: boolean }>> => 
+    api.get('/users/check-setup'),
 };
 
 export const loansAPI = {
