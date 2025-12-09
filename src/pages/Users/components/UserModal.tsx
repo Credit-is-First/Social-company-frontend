@@ -1,7 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { usersAPI } from '../services/api';
-import { User, CreateUserDto } from '../types';
-import { notify } from '../utils/notifications';
+import { usersAPI } from '../../../services/api';
+import { User, CreateUserDto } from '../../../types';
+import { notify } from '../../../utils/notifications';
 
 interface UserModalProps {
   user: User | null;
@@ -142,4 +142,3 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
 };
 
 export default UserModal;
-

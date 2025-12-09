@@ -1,6 +1,6 @@
 import React, { useState, FormEvent } from 'react';
 import { useHistory, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -103,4 +103,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-

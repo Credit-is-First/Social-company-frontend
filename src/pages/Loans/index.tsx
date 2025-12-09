@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { loansAPI } from '../services/api';
-import { Loan, LoanStatus } from '../types';
-import LoanModal from './LoanModal';
-import { notify } from '../utils/notifications';
-import { useConfirmDialog } from '../utils/confirmDialog';
+import { loansAPI } from '../../services/api';
+import { Loan, LoanStatus } from '../../types';
+import LoanModal from './components/LoanModal';
+import { notify } from '../../utils/notifications';
+import { useConfirmDialog } from '../../utils/confirmDialog';
 
 type FilterType = 'all' | 'active';
 
@@ -213,4 +213,3 @@ const Loans: React.FC = () => {
 };
 
 export default Loans;
-

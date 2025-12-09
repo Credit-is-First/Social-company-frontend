@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { booksAPI, usersAPI, loansAPI } from '../services/api';
-import { Book, User, Loan } from '../types';
+import { booksAPI, usersAPI, loansAPI } from '../../services/api';
+import { Book, User, Loan } from '../../types';
 
 interface Stats {
   totalBooks: number;
@@ -92,4 +92,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-

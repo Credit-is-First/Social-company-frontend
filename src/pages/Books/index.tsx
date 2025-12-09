@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { booksAPI } from '../services/api';
-import { Book } from '../types';
-import BookModal from './BookModal';
-import { notify } from '../utils/notifications';
-import { useConfirmDialog } from '../utils/confirmDialog';
+import { booksAPI } from '../../services/api';
+import { Book } from '../../types';
+import BookModal from './components/BookModal';
+import { notify } from '../../utils/notifications';
+import { useConfirmDialog } from '../../utils/confirmDialog';
 
 const Books: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
@@ -136,4 +136,3 @@ const Books: React.FC = () => {
 };
 
 export default Books;
-

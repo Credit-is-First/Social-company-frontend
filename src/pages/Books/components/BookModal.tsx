@@ -1,7 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { booksAPI } from '../services/api';
-import { Book, CreateBookDto } from '../types';
-import { notify } from '../utils/notifications';
+import { booksAPI } from '../../../services/api';
+import { Book, CreateBookDto } from '../../../types';
+import { notify } from '../../../utils/notifications';
 
 interface BookModalProps {
   book: Book | null;
@@ -234,4 +234,3 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
 };
 
 export default BookModal;
-

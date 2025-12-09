@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { usersAPI } from '../services/api';
-import { User } from '../types';
-import UserModal from './UserModal';
-import { notify } from '../utils/notifications';
-import { useConfirmDialog } from '../utils/confirmDialog';
+import { usersAPI } from '../../services/api';
+import { User } from '../../types';
+import UserModal from './components/UserModal';
+import { notify } from '../../utils/notifications';
+import { useConfirmDialog } from '../../utils/confirmDialog';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -138,4 +138,3 @@ const Users: React.FC = () => {
 };
 
 export default Users;
-

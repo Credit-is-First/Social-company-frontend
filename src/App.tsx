@@ -4,16 +4,16 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import ToastContainer from './components/ToastContainer';
 import { setToastContext } from './utils/notifications';
-import Books from './components/Books';
-import Users from './components/Users';
-import Loans from './components/Loans';
-import Dashboard from './components/Dashboard';
-import Login from './components/Login';
-import Register from './components/Register';
-import ResetPassword from './components/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
-import Admin from './components/Admin';
-import Setup from './components/Setup';
+import Dashboard from './pages/Dashboard';
+import Books from './pages/Books';
+import Users from './pages/Users';
+import Loans from './pages/Loans';
+import Admin from './pages/Admin';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ResetPassword from './pages/ResetPassword';
+import Setup from './pages/Setup';
 import { usersAPI } from './services/api';
 
 const AppContent: React.FC = () => {

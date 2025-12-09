@@ -1,7 +1,7 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { useHistory, Link } from 'react-router-dom';
-import { authAPI } from '../services/api';
-import { ResetPasswordDto } from '../types';
+import { authAPI } from '../../services/api';
+import { ResetPasswordDto } from '../../types';
 
 const ResetPassword: React.FC = () => {
   const [formData, setFormData] = useState<ResetPasswordDto>({
@@ -133,4 +133,3 @@ const ResetPassword: React.FC = () => {
 };
 
 export default ResetPassword;
-

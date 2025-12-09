@@ -1,7 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { loansAPI, booksAPI, usersAPI } from '../services/api';
-import { Loan, Book, User, CreateLoanDto } from '../types';
-import { notify } from '../utils/notifications';
+import { loansAPI, booksAPI, usersAPI } from '../../../services/api';
+import { Loan, Book, User, CreateLoanDto } from '../../../types';
+import { notify } from '../../../utils/notifications';
 
 interface LoanModalProps {
   loan: Loan | null;
@@ -200,4 +200,3 @@ const LoanModal: React.FC<LoanModalProps> = ({ loan, onClose }) => {
 };
 
 export default LoanModal;
-

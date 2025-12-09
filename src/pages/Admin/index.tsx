@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { usersAPI } from '../services/api';
-import { User, UserRole } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import { notify } from '../utils/notifications';
-import { useConfirmDialog } from '../utils/confirmDialog';
+import { usersAPI } from '../../services/api';
+import { User, UserRole } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { notify } from '../../utils/notifications';
+import { useConfirmDialog } from '../../utils/confirmDialog';
 
 const Admin: React.FC = () => {
   const { user: currentUser } = useAuth();

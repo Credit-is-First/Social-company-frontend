@@ -1,7 +1,7 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { useHistory, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { RegisterDto } from '../types';
+import { useHistory } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { RegisterDto, UserRole } from '../../types';
 
 const SECURITY_QUESTIONS = [
   'What was the name of your first pet?',
@@ -11,15 +11,17 @@ const SECURITY_QUESTIONS = [
   'What is your favorite movie?',
 ];
 
-const Register: React.FC = () => {
-  const [formData, setFormData] = useState<RegisterDto>({
+const Setup: React.FC = () => {
+  const [formData, setFormData] = useState<RegisterDto & { confirmPassword: string }>({
     name: '',
     email: '',
     phone: '',
     password: '',
+    confirmPassword: '',
     address: '',
     securityQuestion: '',
     securityAnswer: '',
+    role: UserRole.ADMIN,
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -37,25 +39,59 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setError('');
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    // Validate password strength
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register(formData);
-      history.push('/');
+      // Remove confirmPassword before sending
+      const { confirmPassword, ...registerData } = formData;
+      await register(registerData);
+      // After successful registration, reload the page to check setup status again
+      window.location.href = '/';
     } catch (err: any) {
-      setError(err.message || 'Failed to register');
+      setError(err.message || 'Failed to create admin account');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white rounded-lg shadow-xl p-8">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+            <svg
+              className="h-8 w-8 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            Initial Setup
           </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Create your super admin account to get started
+          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
@@ -76,6 +112,7 @@ const Register: React.FC = () => {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.name}
                 onChange={handleChange}
+                placeholder="Enter your full name"
               />
             </div>
 
@@ -91,6 +128,7 @@ const Register: React.FC = () => {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.email}
                 onChange={handleChange}
+                placeholder="admin@example.com"
               />
             </div>
 
@@ -106,6 +144,7 @@ const Register: React.FC = () => {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.phone}
                 onChange={handleChange}
+                placeholder="+1234567890"
               />
             </div>
 
@@ -121,6 +160,25 @@ const Register: React.FC = () => {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.password}
                 onChange={handleChange}
+                placeholder="Minimum 6 characters"
+                minLength={6}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm Password *
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Re-enter your password"
+                minLength={6}
               />
             </div>
 
@@ -135,6 +193,7 @@ const Register: React.FC = () => {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.address}
                 onChange={handleChange}
+                placeholder="Optional address"
               />
             </div>
 
@@ -171,6 +230,7 @@ const Register: React.FC = () => {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.securityAnswer}
                 onChange={handleChange}
+                placeholder="Your answer to the security question"
               />
             </div>
           </div>
@@ -181,15 +241,14 @@ const Register: React.FC = () => {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? 'Creating admin account...' : 'Create Super Admin Account'}
             </button>
           </div>
 
-          <div className="text-center text-sm">
-            <span className="text-gray-600">Already have an account? </span>
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
-            </Link>
+          <div className="text-center">
+            <p className="text-xs text-gray-500">
+              This will create the first admin account for the system. Make sure to keep your credentials secure.
+            </p>
           </div>
         </form>
       </div>
@@ -197,5 +256,4 @@ const Register: React.FC = () => {
   );
 };
 
-export default Register;
-
+export default Setup;
