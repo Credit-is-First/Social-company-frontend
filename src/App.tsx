@@ -5,11 +5,9 @@ import { ToastProvider, useToast } from './contexts/ToastContext';
 import ToastContainer from './components/ToastContainer';
 import { setToastContext } from './utils/notifications';
 import ProtectedRoute from './components/ProtectedRoute';
-import Dashboard from './pages/Dashboard';
-import Books from './pages/Books';
-import Users from './pages/Users';
-import Loans from './pages/Loans';
-import Admin from './pages/Admin';
+import UserAvatar from './components/UserAvatar';
+import MyPage from './pages/MyPage';
+import BrowseBooks from './pages/BrowseBooks';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
@@ -76,54 +74,40 @@ const AppContent: React.FC = () => {
         <nav className="bg-blue-600 text-white shadow-lg">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">📚 Library Management System</h1>
-              <div className="flex items-center space-x-4">
-                <Link to="/" className="hover:text-blue-200 transition">Dashboard</Link>
-                <Link to="/books" className="hover:text-blue-200 transition">Books</Link>
-                {(hasRole('admin') || hasRole('librarian')) && (
-                  <>
-                    <Link to="/users" className="hover:text-blue-200 transition">Users</Link>
-                    <Link to="/loans" className="hover:text-blue-200 transition">Loans</Link>
-                  </>
-                )}
-                {hasRole('admin') && (
-                  <Link to="/admin" className="hover:text-blue-200 transition">Admin</Link>
-                )}
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm">Welcome, {user?.name}</span>
-                  <div className="flex space-x-1">
-                    {user?.roles?.map((role) => (
-                      <span key={role.id} className="text-xs bg-blue-500 px-2 py-1 rounded">
-                        {role.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  onClick={logout}
-                  className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded transition"
-                >
-                  Logout
-                </button>
+              {/* Logo and Site Name */}
+              <div className="flex items-center space-x-3">
+                <div className="text-3xl">📚</div>
+                <Link to="/my-page/personal" className="text-2xl font-bold hover:text-blue-200 transition">
+                  Library Management System
+                </Link>
+              </div>
+
+              {/* Navigation Links and User Avatar */}
+              <div className="flex items-center space-x-6">
+                <Link to="/my-page/personal" className="hover:text-blue-200 transition font-medium">
+                  Homepage
+                </Link>
+                <Link to="/books" className="hover:text-blue-200 transition font-medium">
+                  Books
+                </Link>
+                <UserAvatar />
               </div>
             </div>
           </div>
         </nav>
       )}
 
-      <main className={isAuthenticated ? 'container mx-auto px-4 py-8' : ''}>
+      <main className={isAuthenticated ? '' : 'container mx-auto px-4 py-8'}>
         <Switch>
           <Route exact path="/setup" component={Setup} />
           <Route exact path="/login" component={Login} />
           <Route exact path="/register" component={Register} />
           <Route exact path="/reset-password" component={ResetPassword} />
-          <ProtectedRoute exact path="/" component={Dashboard} />
-          <ProtectedRoute path="/books" component={Books} />
-          <ProtectedRoute path="/users" component={Users} roles={['admin', 'librarian']} />
-          <ProtectedRoute path="/loans" component={Loans} roles={['admin', 'librarian']} />
-          <ProtectedRoute path="/admin" component={Admin} roles={['admin']} />
+          <ProtectedRoute exact path="/" component={MyPage} />
+          <ProtectedRoute exact path="/books" component={BrowseBooks} />
+          <ProtectedRoute path="/my-page" component={MyPage} />
           <Route path="*">
-            <Redirect to={isAuthenticated ? '/' : '/login'} />
+            <Redirect to={isAuthenticated ? '/my-page/personal' : '/login'} />
           </Route>
         </Switch>
       </main>

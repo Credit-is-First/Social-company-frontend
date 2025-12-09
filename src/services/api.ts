@@ -88,6 +88,8 @@ export const loansAPI = {
     api.get(`/loans/${id}`),
   create: (data: CreateLoanDto): Promise<AxiosResponse<Loan>> => 
     api.post('/loans', data),
+  borrow: (bookId: number): Promise<AxiosResponse<Loan>> => 
+    api.post('/loans/borrow', { bookId }),
   update: (id: number, data: UpdateLoanDto): Promise<AxiosResponse<Loan>> => 
     api.patch(`/loans/${id}`, data),
   delete: (id: number): Promise<AxiosResponse<void>> => 
@@ -105,6 +107,8 @@ export const authAPI = {
     api.patch('/auth/change-password', data),
   getProfile: (): Promise<AxiosResponse<User>> => 
     api.get('/auth/profile'),
+  updateProfile: (data: { name?: string; phone?: string; address?: string }): Promise<AxiosResponse<User>> => 
+    api.patch('/auth/profile', data),
 };
 
 // Add token to requests if available

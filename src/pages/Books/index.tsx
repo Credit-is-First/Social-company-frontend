@@ -100,8 +100,12 @@ const Books: React.FC = () => {
 
   return (
     <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-2">Manage Books</h2>
+        <p className="text-gray-600">Add, edit, delete, and approve books in the library</p>
+      </div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">Books</h2>
+        <div></div>
         <button
           onClick={handleCreate}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
