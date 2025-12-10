@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { Book, User, Loan, Role, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse } from '../types';
+import { Book, User, Loan, Role, Group, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse, CreateGroupDto, UpdateGroupDto } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -13,7 +13,7 @@ const api = axios.create({
 export const booksAPI = {
   getAll: (search?: string): Promise<AxiosResponse<Book[]>> => 
     api.get('/books', { params: { search } }),
-  getById: (id: number): Promise<AxiosResponse<Book>> => 
+  getById: (id: string): Promise<AxiosResponse<Book>> => 
     api.get(`/books/${id}`),
   create: (data: CreateBookDto, file?: File): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
@@ -33,7 +33,7 @@ export const booksAPI = {
       },
     });
   },
-  update: (id: number, data: UpdateBookDto, file?: File): Promise<AxiosResponse<Book>> => {
+  update: (id: string, data: UpdateBookDto, file?: File): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       const value = data[key as keyof UpdateBookDto];
@@ -51,53 +51,63 @@ export const booksAPI = {
       },
     });
   },
-  delete: (id: number): Promise<AxiosResponse<void>> => 
+  delete: (id: string): Promise<AxiosResponse<void>> => 
     api.delete(`/books/${id}`),
-  approve: (id: number): Promise<AxiosResponse<Book>> => 
+  approve: (id: string): Promise<AxiosResponse<Book>> => 
     api.patch(`/books/${id}/approve`),
 };
 
 export const usersAPI = {
   getAll: (search?: string): Promise<AxiosResponse<User[]>> => 
     api.get('/users', { params: { search } }),
-  getById: (id: number): Promise<AxiosResponse<User>> => 
+  getById: (id: string): Promise<AxiosResponse<User>> => 
     api.get(`/users/${id}`),
   create: (data: CreateUserDto): Promise<AxiosResponse<User>> => 
     api.post('/users', data),
-  update: (id: number, data: UpdateUserDto): Promise<AxiosResponse<User>> => 
+  update: (id: string, data: UpdateUserDto): Promise<AxiosResponse<User>> => 
     api.patch(`/users/${id}`, data),
-  delete: (id: number): Promise<AxiosResponse<void>> => 
+  delete: (id: string): Promise<AxiosResponse<void>> => 
     api.delete(`/users/${id}`),
-  checkSetup: (): Promise<AxiosResponse<{ needsSetup: boolean }>> => 
-    api.get('/users/check-setup'),
-  updateRoles: (id: number, roleIds: number[]): Promise<AxiosResponse<User>> => 
+  updateRoles: (id: string, roleIds: string[]): Promise<AxiosResponse<User>> => 
     api.patch(`/users/${id}/roles`, { roleIds }),
+  updateGroups: (id: string, groupIds: string[]): Promise<AxiosResponse<User>> => 
+    api.patch(`/users/${id}/groups`, { groupIds }),
+  blockUser: (id: string, blocked: boolean): Promise<AxiosResponse<User>> => 
+    api.patch(`/users/${id}/block`, { blocked }),
+  resetPassword: (id: string, newPassword: string): Promise<AxiosResponse<User>> => 
+    api.patch(`/users/${id}/reset-password`, { newPassword }),
 };
 
 export const rolesAPI = {
   getAll: (): Promise<AxiosResponse<Role[]>> => 
     api.get('/roles'),
+  getById: (id: string): Promise<AxiosResponse<Role>> => 
+    api.get(`/roles/${id}`),
 };
 
 export const loansAPI = {
-  getAll: (userId?: number, bookId?: number): Promise<AxiosResponse<Loan[]>> => 
+  getAll: (userId?: string, bookId?: string): Promise<AxiosResponse<Loan[]>> => 
     api.get('/loans', { params: { userId, bookId } }),
   getActive: (): Promise<AxiosResponse<Loan[]>> => 
     api.get('/loans/active'),
-  getById: (id: number): Promise<AxiosResponse<Loan>> => 
+  getById: (id: string): Promise<AxiosResponse<Loan>> => 
     api.get(`/loans/${id}`),
   create: (data: CreateLoanDto): Promise<AxiosResponse<Loan>> => 
     api.post('/loans', data),
-  borrow: (bookId: number): Promise<AxiosResponse<Loan>> => 
+  borrow: (bookId: string): Promise<AxiosResponse<Loan>> => 
     api.post('/loans/borrow', { bookId }),
-  update: (id: number, data: UpdateLoanDto): Promise<AxiosResponse<Loan>> => 
+  update: (id: string, data: UpdateLoanDto): Promise<AxiosResponse<Loan>> => 
     api.patch(`/loans/${id}`, data),
-  delete: (id: number): Promise<AxiosResponse<void>> => 
+  delete: (id: string): Promise<AxiosResponse<void>> => 
     api.delete(`/loans/${id}`),
 };
 
 export const authAPI = {
-  register: (data: RegisterDto): Promise<AxiosResponse<AuthResponse>> => 
+  checkSetup: (): Promise<AxiosResponse<{ needsSetup: boolean }>> => 
+    api.get('/auth/check-setup'),
+  setupSuperAdmin: (data: RegisterDto): Promise<AxiosResponse<User>> => 
+    api.post('/auth/setup-super-admin', data),
+  register: (data: RegisterDto): Promise<AxiosResponse<User>> => 
     api.post('/auth/register', data),
   login: (data: LoginDto): Promise<AxiosResponse<AuthResponse>> => 
     api.post('/auth/login', data),
@@ -109,6 +119,19 @@ export const authAPI = {
     api.get('/auth/profile'),
   updateProfile: (data: { name?: string; phone?: string; address?: string }): Promise<AxiosResponse<User>> => 
     api.patch('/auth/profile', data),
+};
+
+export const groupsAPI = {
+  getAll: (): Promise<AxiosResponse<Group[]>> => 
+    api.get('/groups'),
+  getById: (id: string): Promise<AxiosResponse<Group>> => 
+    api.get(`/groups/${id}`),
+  create: (data: CreateGroupDto): Promise<AxiosResponse<Group>> => 
+    api.post('/groups', data),
+  update: (id: string, data: UpdateGroupDto): Promise<AxiosResponse<Group>> => 
+    api.patch(`/groups/${id}`, data),
+  delete: (id: string): Promise<AxiosResponse<void>> => 
+    api.delete(`/groups/${id}`),
 };
 
 // Add token to requests if available

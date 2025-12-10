@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Switch, Link, Redirect } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -12,35 +12,15 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import Setup from './pages/Setup';
-import { usersAPI } from './services/api';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, user, logout, hasRole } = useAuth();
+  const { isAuthenticated, user, logout, hasRole, needsSetup, checkingSetup } = useAuth();
   const { showToast, toasts, removeToast } = useToast();
-  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-  const [checkingSetup, setCheckingSetup] = useState<boolean>(true);
 
   // Initialize toast context for notify utility
   useEffect(() => {
     setToastContext({ showToast });
   }, [showToast]);
-
-  useEffect(() => {
-    const checkSetup = async () => {
-      try {
-        const response = await usersAPI.checkSetup();
-        setNeedsSetup(response.data.needsSetup);
-      } catch (error) {
-        console.error('Error checking setup:', error);
-        // If there's an error, assume setup is not needed
-        setNeedsSetup(false);
-      } finally {
-        setCheckingSetup(false);
-      }
-    };
-
-    checkSetup();
-  }, []);
 
   // Show loading while checking setup
   if (checkingSetup) {

@@ -11,7 +11,7 @@ const Admin: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const { confirm, Dialog } = useConfirmDialog();
 
   useEffect(() => {
@@ -35,7 +35,7 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleRoleToggle = async (userId: number, roleId: number, isChecked: boolean): Promise<void> => {
+  const handleRoleToggle = async (userId: string, roleId: string, isChecked: boolean): Promise<void> => {
     if (userId === currentUser?.id) {
       notify.warning('You cannot change your own roles');
       return;
@@ -45,7 +45,7 @@ const Admin: React.FC = () => {
     if (!user) return;
 
     const currentRoleIds = user.roles?.map(r => r.id) || [];
-    let newRoleIds: number[];
+    let newRoleIds: string[];
 
     if (isChecked) {
       newRoleIds = [...currentRoleIds, roleId];
@@ -85,7 +85,7 @@ const Admin: React.FC = () => {
     }
   };
 
-  const userHasRole = (user: User, roleId: number): boolean => {
+  const userHasRole = (user: User, roleId: string): boolean => {
     return user.roles?.some(role => role.id === roleId) || false;
   };
 

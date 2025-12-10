@@ -41,7 +41,8 @@ const Register: React.FC = () => {
 
     try {
       await register(formData);
-      history.push('/');
+      // Redirect to login page after successful registration
+      history.push('/login');
     } catch (err: any) {
       setError(err.message || 'Failed to register');
     } finally {

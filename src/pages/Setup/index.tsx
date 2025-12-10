@@ -25,7 +25,7 @@ const Setup: React.FC = () => {
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const { register } = useAuth();
+  const { completeSetup } = useAuth();
   const history = useHistory();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>): void => {
@@ -55,13 +55,18 @@ const Setup: React.FC = () => {
     setLoading(true);
 
     try {
-      // Remove confirmPassword before sending
-      const { confirmPassword, ...registerData } = formData;
-      await register(registerData);
-      // After successful registration, reload the page to check setup status again
-      window.location.href = '/';
+      // Remove confirmPassword and role before sending
+      const { confirmPassword, role, ...registerData } = formData;
+      // Use setupSuperAdmin endpoint instead of register
+      const { authAPI } = await import('../../services/api');
+      // setupSuperAdmin only returns user, not token
+      await authAPI.setupSuperAdmin(registerData);
+      // Mark setup as complete in AuthContext
+      completeSetup();
+      // Redirect to login page after successful setup
+      history.push('/login');
     } catch (err: any) {
-      setError(err.message || 'Failed to create admin account');
+      setError(err.response?.data?.message || err.message || 'Failed to create admin account');
     } finally {
       setLoading(false);
     }

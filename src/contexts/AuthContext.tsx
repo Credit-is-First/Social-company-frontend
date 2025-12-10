@@ -11,6 +11,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   hasRole: (roleName: string) => boolean;
+  hasPermission: (permission: string) => boolean;
+  needsSetup: boolean | null;
+  checkingSetup: boolean;
+  completeSetup: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,6 +35,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+  const [checkingSetup, setCheckingSetup] = useState<boolean>(true);
+
+  // Check setup status on mount
+  useEffect(() => {
+    const checkSetup = async () => {
+      try {
+        setCheckingSetup(true);
+        const response = await authAPI.checkSetup();
+        setNeedsSetup(response.data.needsSetup);
+      } catch (error) {
+        console.error('Error checking setup:', error);
+        // If there's an error, assume setup is not needed
+        setNeedsSetup(false);
+      } finally {
+        setCheckingSetup(false);
+      }
+    };
+
+    checkSetup();
+  }, []);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -59,13 +84,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (data: any): Promise<void> => {
     try {
-      const response = await authAPI.register(data);
-      const { user: userData, access_token } = response.data;
-      
-      setUser(userData);
-      setToken(access_token);
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      // Register endpoint only returns user, not token
+      // User needs to login separately after registration
+      await authAPI.register(data);
+      // Don't set user/token here - redirect to login instead
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Registration failed');
     }
@@ -84,6 +106,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user.roles.some(role => role.name === roleName);
   };
 
+  // Helper function to check if user has a specific permission (role name format: resource:action)
+  const hasPermission = (permission: string): boolean => {
+    if (!user || !user.roles) return false;
+    return user.roles.some(role => role.name === permission);
+  };
+
+  // Mark setup as complete (called after successful setup-super-admin)
+  const completeSetup = (): void => {
+    setNeedsSetup(false);
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -93,6 +126,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user && !!token,
     loading,
     hasRole,
+    hasPermission,
+    needsSetup,
+    checkingSetup,
+    completeSetup,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

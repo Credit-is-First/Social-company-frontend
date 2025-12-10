@@ -6,8 +6,9 @@ import Books from '../Books';
 import Users from '../Users';
 import Admin from '../Admin';
 import Loans from '../Loans';
+import Groups from '../Groups';
 
-type TabType = 'personal' | 'books' | 'users' | 'roles' | 'loans';
+type TabType = 'personal' | 'books' | 'users' | 'roles' | 'groups' | 'loans';
 
 const MyPage: React.FC = () => {
   const { hasRole } = useAuth();
@@ -20,6 +21,7 @@ const MyPage: React.FC = () => {
     if (path === '/my-page' || path === '/' || path === '/my-page/personal') return 'personal';
     if (path === '/my-page/users') return 'users';
     if (path === '/my-page/roles') return 'roles';
+    if (path === '/my-page/groups') return 'groups';
     if (path === '/my-page/books') return 'books';
     if (path === '/my-page/loans') return 'loans';
     return 'personal';
@@ -50,6 +52,7 @@ const MyPage: React.FC = () => {
     { id: 'books' as TabType, label: 'Books', icon: '📚', show: true },
     { id: 'users' as TabType, label: 'Users', icon: '👥', show: hasRole('admin') || hasRole('librarian') },
     { id: 'roles' as TabType, label: 'Roles', icon: '🔐', show: hasRole('admin') },
+    { id: 'groups' as TabType, label: 'Groups', icon: '👥', show: hasRole('admin') },
     { id: 'loans' as TabType, label: 'Loans', icon: '📖', show: hasRole('admin') || hasRole('librarian') },
   ];
 
@@ -87,6 +90,7 @@ const MyPage: React.FC = () => {
           {activeTab === 'books' && <Books />}
           {activeTab === 'users' && <Users />}
           {activeTab === 'roles' && <Admin />}
+          {activeTab === 'groups' && <Groups />}
           {activeTab === 'loans' && <Loans />}
         </div>
       </div>

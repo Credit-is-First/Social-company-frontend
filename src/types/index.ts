@@ -1,5 +1,5 @@
 export interface Book {
-  id: number;
+  id: string;
   title: string;
   author: string;
   isbn: string;
@@ -11,16 +11,28 @@ export interface Book {
   isEbook?: boolean;
   filePath?: string;
   isApproved?: boolean;
-  approvedBy?: number;
+  approvedBy?: string;
   approvedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Role {
-  id: number;
+  id: string;
   name: string;
   description?: string;
+  resource?: string;
+  action?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  roles?: Role[];
   createdAt: string;
   updatedAt: string;
 }
@@ -32,12 +44,14 @@ export enum UserRole {
 }
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
   address?: string;
   roles?: Role[];
+  groups?: Group[];
+  blocked?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,9 +59,9 @@ export interface User {
 export type LoanStatus = 'active' | 'returned' | 'overdue';
 
 export interface Loan {
-  id: number;
-  bookId: number;
-  userId: number;
+  id: string;
+  bookId: string;
+  userId: string;
   borrowDate: string;
   dueDate: string;
   returnDate?: string;
@@ -79,14 +93,29 @@ export interface CreateUserDto {
 }
 
 export interface UpdateUserDto extends Partial<CreateUserDto> {
-  roleIds?: number[];
+  roleIds?: string[];
+  groupIds?: string[];
+  blocked?: boolean;
 }
 
 export interface CreateLoanDto {
-  bookId: number;
-  userId: number;
+  bookId: string;
+  userId: string;
   borrowDate: string;
   dueDate: string;
+}
+
+export interface CreateGroupDto {
+  name: string;
+  description?: string;
+  roleIds?: string[];
+  isDefault?: boolean;
+}
+
+export interface UpdateGroupDto {
+  name?: string;
+  description?: string;
+  roleIds?: string[];
 }
 
 export interface UpdateLoanDto {

@@ -57,7 +57,7 @@ const Books: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number): Promise<void> => {
+  const handleDelete = async (id: string): Promise<void> => {
     confirm(
       'Delete Book',
       'Are you sure you want to delete this book? This action cannot be undone.',
@@ -81,7 +81,7 @@ const Books: React.FC = () => {
     fetchBooks();
   };
 
-  const handleApprove = async (id: number): Promise<void> => {
+  const handleApprove = async (id: string): Promise<void> => {
     confirm(
       'Approve Book',
       'Are you sure you want to approve this book?',

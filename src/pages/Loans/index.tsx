@@ -62,7 +62,7 @@ const Loans: React.FC = () => {
     );
   };
 
-  const handleDelete = async (id: number): Promise<void> => {
+  const handleDelete = async (id: string): Promise<void> => {
     confirm(
       'Delete Loan',
       'Are you sure you want to delete this loan? This action cannot be undone.',

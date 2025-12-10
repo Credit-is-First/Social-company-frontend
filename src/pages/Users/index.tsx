@@ -4,8 +4,10 @@ import { User } from '../../types';
 import UserModal from './components/UserModal';
 import { notify } from '../../utils/notifications';
 import { useConfirmDialog } from '../../utils/confirmDialog';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Users: React.FC = () => {
+  const { hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -40,7 +42,7 @@ const Users: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number): Promise<void> => {
+  const handleDelete = async (id: string): Promise<void> => {
     confirm(
       'Delete User',
       'Are you sure you want to delete this user? This action cannot be undone.',
@@ -68,12 +70,14 @@ const Users: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">Users</h2>
+        {hasPermission('user:create') && (
         <button
           onClick={handleCreate}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
         >
           + Add User
         </button>
+        )}
       </div>
 
       <div className="mb-4">
@@ -119,18 +123,22 @@ const Users: React.FC = () => {
                 )}
               </div>
               <div className="flex justify-end space-x-2 mt-4">
+                {hasPermission('user:update') && (
                 <button
                   onClick={() => handleEdit(user)}
                   className="text-blue-600 hover:text-blue-800"
                 >
                   Edit
                 </button>
+                )}
+                {hasPermission('user:delete') && (
                 <button
                   onClick={() => handleDelete(user.id)}
                   className="text-red-600 hover:text-red-800"
                 >
                   Delete
                 </button>
+                )}
               </div>
             </div>
           ))}
