@@ -83,8 +83,8 @@ const LoanModal: React.FC<LoanModalProps> = ({ loan, onClose }) => {
         });
       } else {
         const loanData: CreateLoanDto = {
-          bookId: parseInt(formData.bookId),
-          userId: parseInt(formData.userId),
+          bookId: formData.bookId,
+          userId: formData.userId,
           borrowDate: formData.borrowDate,
           dueDate: formData.dueDate,
         };

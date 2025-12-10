@@ -7,6 +7,7 @@ import { setToastContext } from './utils/notifications';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserAvatar from './components/UserAvatar';
 import MyPage from './pages/MyPage';
+import Dashboard from './pages/Dashboard';
 import BrowseBooks from './pages/BrowseBooks';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -58,15 +59,15 @@ const AppContent: React.FC = () => {
               {/* Logo and Site Name */}
               <div className="flex items-center space-x-3">
                 <div className="text-3xl">📚</div>
-                <Link to="/my-page/personal" className="text-2xl font-bold hover:text-blue-200 transition">
+                <Link to="/" className="text-2xl font-bold hover:text-blue-200 transition">
                   Library Management System
                 </Link>
               </div>
 
               {/* Navigation Links and User Avatar */}
               <div className="flex items-center space-x-6">
-                <Link to="/my-page/personal" className="hover:text-blue-200 transition font-medium">
-                  Homepage
+                <Link to="/" className="hover:text-blue-200 transition font-medium">
+                  Dashboard
                 </Link>
                 <Link to="/books" className="hover:text-blue-200 transition font-medium">
                   Books
@@ -86,7 +87,7 @@ const AppContent: React.FC = () => {
           <Route exact path="/login" component={Login} />
           <Route exact path="/register" component={Register} />
           <Route exact path="/reset-password" component={ResetPassword} />
-          <ProtectedRoute exact path="/" component={MyPage} />
+          <ProtectedRoute exact path="/" component={Dashboard} />
           <ProtectedRoute exact path="/books" component={BrowseBooks} />
           <ProtectedRoute path="/my-page" component={MyPage} />
           <Route path="*" component={NotFound} />

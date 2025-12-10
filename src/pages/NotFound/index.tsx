@@ -28,10 +28,10 @@ const NotFound: React.FC = () => {
               </button>
               {isAuthenticated ? (
                 <Link
-                  to="/my-page/personal"
+                  to="/"
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium inline-block"
                 >
-                  Go to Homepage
+                  Go to Dashboard
                 </Link>
               ) : (
                 <Link
