@@ -12,9 +12,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import Setup from './pages/Setup';
+import NotFound from './pages/NotFound';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, user, logout, hasRole, needsSetup, checkingSetup } = useAuth();
+  const { isAuthenticated, needsSetup, checkingSetup } = useAuth();
   const { showToast, toasts, removeToast } = useToast();
 
   // Initialize toast context for notify utility
@@ -79,16 +80,16 @@ const AppContent: React.FC = () => {
 
       <main className={isAuthenticated ? '' : 'container mx-auto px-4 py-8'}>
         <Switch>
-          <Route exact path="/setup" component={Setup} />
+          <Route exact path="/setup">
+            {needsSetup ? <Setup /> : <Redirect to="/login" />}
+          </Route>
           <Route exact path="/login" component={Login} />
           <Route exact path="/register" component={Register} />
           <Route exact path="/reset-password" component={ResetPassword} />
           <ProtectedRoute exact path="/" component={MyPage} />
           <ProtectedRoute exact path="/books" component={BrowseBooks} />
           <ProtectedRoute path="/my-page" component={MyPage} />
-          <Route path="*">
-            <Redirect to={isAuthenticated ? '/my-page/personal' : '/login'} />
-          </Route>
+          <Route path="*" component={NotFound} />
         </Switch>
       </main>
       <ToastContainer toasts={toasts} onRemove={removeToast} />

@@ -1,5 +1,5 @@
-import React, { useState, FormEvent } from 'react';
-import { useHistory, Link } from 'react-router-dom';
+import React, { useState, useEffect, FormEvent } from 'react';
+import { useHistory, Link, useLocation, Redirect } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Login: React.FC = () => {
@@ -7,8 +7,31 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const history = useHistory();
+  const location = useLocation();
+
+  // Get 'from' from location state or query parameter (for backward compatibility)
+  const getFromPath = (): string => {
+    const stateFrom = (location.state as any)?.from;
+    if (stateFrom) return stateFrom;
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get('from') || '/my-page/personal';
+  };
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = getFromPath();
+      history.replace(from);
+    }
+  }, [isAuthenticated, location, history]);
+
+  // Don't render if already authenticated
+  if (isAuthenticated) {
+    const from = getFromPath();
+    return <Redirect to={from} />;
+  }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -17,7 +40,12 @@ const Login: React.FC = () => {
 
     try {
       await login(email, password);
-      history.push('/');
+      // Redirect to 'from' location state or query parameter or default to home
+      const stateFrom = (location.state as any)?.from;
+      const searchParams = new URLSearchParams(location.search);
+      const queryFrom = searchParams.get('from');
+      const from = stateFrom || queryFrom || '/my-page/personal';
+      history.push(from);
     } catch (err: any) {
       setError(err.message || 'Failed to login');
     } finally {

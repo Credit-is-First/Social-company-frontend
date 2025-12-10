@@ -1,5 +1,5 @@
-import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { useHistory } from 'react-router-dom';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { useHistory, Redirect, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { RegisterDto, UserRole } from '../../types';
 
@@ -25,8 +25,45 @@ const Setup: React.FC = () => {
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const { completeSetup } = useAuth();
+  const { completeSetup, needsSetup, checkingSetup, isAuthenticated } = useAuth();
   const history = useHistory();
+  const location = useLocation();
+
+  // Get 'from' from location state or query parameter (for backward compatibility)
+  const getFromPath = (defaultPath: string = '/my-page/personal'): string => {
+    const stateFrom = (location.state as any)?.from;
+    if (stateFrom) return stateFrom;
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get('from') || defaultPath;
+  };
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = getFromPath();
+      history.replace(from);
+    }
+  }, [isAuthenticated, location, history]);
+
+  // Redirect if setup is already complete
+  useEffect(() => {
+    if (!checkingSetup && needsSetup === false) {
+      const from = getFromPath('/login');
+      history.replace(from);
+    }
+  }, [needsSetup, checkingSetup, location, history]);
+
+  // Don't render if already authenticated
+  if (isAuthenticated) {
+    const from = getFromPath();
+    return <Redirect to={from} />;
+  }
+
+  // Don't render if setup is already complete
+  if (!checkingSetup && needsSetup === false) {
+    const from = getFromPath('/login');
+    return <Redirect to={from} />;
+  }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>): void => {
     const { name, value } = e.target;
