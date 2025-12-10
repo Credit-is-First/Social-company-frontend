@@ -1,6 +1,9 @@
 const path = require('path');
 
 module.exports = {
+  devServer: {
+    port: 5000,
+  },
   webpack: {
     configure: (webpackConfig) => {
       // Override postcss-loader to use version 4.x which supports PostCSS 8
