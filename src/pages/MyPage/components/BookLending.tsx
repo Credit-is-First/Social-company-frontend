@@ -21,7 +21,7 @@ const BookLending: React.FC = () => {
   const fetchMyLoans = async (): Promise<void> => {
     try {
       setLoading(true);
-      // Use the new endpoint that doesn't require permissions
+      // Use the new endpoint that doesn't require roles
       const response = await loansAPI.getMyLoans();
       setLoans(response.data);
     } catch (error) {

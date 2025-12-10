@@ -1,7 +1,7 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useHistory, Redirect, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { RegisterDto, UserRole } from '../../types';
+import { RegisterDto } from '../../types';
 
 const SECURITY_QUESTIONS = [
   'What was the name of your first pet?',
@@ -21,7 +21,6 @@ const Setup: React.FC = () => {
     address: '',
     securityQuestion: '',
     securityAnswer: '',
-    role: UserRole.ADMIN,
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -92,8 +91,8 @@ const Setup: React.FC = () => {
     setLoading(true);
 
     try {
-      // Remove confirmPassword and role before sending
-      const { confirmPassword, role, ...registerData } = formData;
+      // Remove confirmPassword before sending
+      const { confirmPassword, ...registerData } = formData;
       // Use setupSuperAdmin endpoint instead of register
       const { authAPI } = await import('../../services/api');
       // setupSuperAdmin only returns user, not token

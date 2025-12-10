@@ -37,12 +37,6 @@ export interface Group {
   updatedAt: string;
 }
 
-export enum UserRole {
-  ADMIN = 'admin',
-  LIBRARIAN = 'librarian',
-  USER = 'user',
-}
-
 export interface User {
   id: string;
   name: string;
@@ -129,7 +123,6 @@ export interface RegisterDto {
   phone: string;
   password: string;
   address?: string;
-  role?: UserRole;
   securityQuestion: string;
   securityAnswer: string;
 }

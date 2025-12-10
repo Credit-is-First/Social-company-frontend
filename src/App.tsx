@@ -5,7 +5,7 @@ import { ToastProvider, useToast } from './contexts/ToastContext';
 import ToastContainer from './components/ToastContainer';
 import { setToastContext } from './utils/notifications';
 import ProtectedRoute from './components/ProtectedRoute';
-import PermissionProtectedRoute from './components/PermissionProtectedRoute';
+import RoleProtectedRoute from './components/RoleProtectedRoute';
 import UserAvatar from './components/UserAvatar';
 import MyPage from './pages/MyPage';
 import Dashboard from './pages/Dashboard';
@@ -107,11 +107,11 @@ const AppContent: React.FC = () => {
           <ProtectedRoute exact path="/books" component={BrowseBooks} />
           <ProtectedRoute path="/my-page" component={MyPage} />
           <ProtectedRoute exact path="/manager" component={Manager} />
-          <PermissionProtectedRoute exact path="/manager/roles" permission="role:read" component={RolesManagement} />
-          <PermissionProtectedRoute exact path="/manager/groups" permission="group:read" component={GroupsManagement} />
-          <PermissionProtectedRoute exact path="/manager/users" permission="user:read" component={UsersManagement} />
-          <PermissionProtectedRoute exact path="/manager/books" permission="book:read" component={BooksManagement} />
-          <PermissionProtectedRoute exact path="/manager/lending" permission="book_lending:read" component={LendingManagement} />
+          <RoleProtectedRoute exact path="/manager/roles" role="role:read" component={RolesManagement} />
+          <RoleProtectedRoute exact path="/manager/groups" role="group:read" component={GroupsManagement} />
+          <RoleProtectedRoute exact path="/manager/users" role="user:read" component={UsersManagement} />
+          <RoleProtectedRoute exact path="/manager/books" role="book:read" component={BooksManagement} />
+          <RoleProtectedRoute exact path="/manager/lending" role="book_lending:read" component={LendingManagement} />
           <Route path="*" component={NotFound} />
         </Switch>
       </main>

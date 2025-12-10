@@ -93,7 +93,7 @@ const Admin: React.FC = () => {
     <div>
       <div className="mb-6">
         <h2 className="text-3xl font-bold mb-2">User Role Management</h2>
-        <p className="text-gray-600">Manage user roles and permissions. Users can have multiple roles.</p>
+        <p className="text-gray-600">Manage user roles. Users can have multiple roles.</p>
       </div>
 
       <div className="mb-4">

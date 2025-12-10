@@ -2,13 +2,13 @@ import React from 'react';
 import { Route, Redirect, RouteProps, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-interface PermissionProtectedRouteProps extends RouteProps {
-  permission: string;
+interface RoleProtectedRouteProps extends RouteProps {
+  role: string;
 }
 
-const PermissionProtectedRoute: React.FC<PermissionProtectedRouteProps> = ({ 
+const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({ 
   children, 
-  permission, 
+  role, 
   ...rest 
 }) => {
   const { isAuthenticated, hasRole, loading } = useAuth();
@@ -29,11 +29,11 @@ const PermissionProtectedRoute: React.FC<PermissionProtectedRouteProps> = ({
     }} />;
   }
 
-  if (!hasRole(permission)) {
+  if (!hasRole(role)) {
     return <Redirect to="/" />;
   }
 
   return <Route {...rest}>{children}</Route>;
 };
 
-export default PermissionProtectedRoute;
+export default RoleProtectedRoute;

@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const Manager: React.FC = () => {
   const { hasRole } = useAuth();
 
-  // Redirect to first available manager page based on permissions
+  // Redirect to first available manager page based on roles
   if (hasRole('role:read')) {
     return <Redirect to="/manager/roles" />;
   }
@@ -22,7 +22,7 @@ const Manager: React.FC = () => {
     return <Redirect to="/manager/lending" />;
   }
 
-  // If no permissions, redirect to home
+  // If no roles, redirect to home
   return <Redirect to="/" />;
 };
 

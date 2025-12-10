@@ -8,7 +8,7 @@ const UserAvatar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Check if user has any manager permissions
+  // Check if user has any manager roles
   const hasManagerAccess = hasRole('role:read') || 
                           hasRole('group:read') || 
                           hasRole('user:read') || 

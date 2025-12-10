@@ -64,39 +64,39 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({
       .slice(0, 2);
   };
 
-  // Manager menu items with permission checks
+  // Manager menu items with role checks
   const menuItems = [
     {
       path: '/manager/roles',
       label: 'Roles Management',
       icon: '🔐',
-      permission: 'role:read',
+      role: 'role:read',
     },
     {
       path: '/manager/groups',
       label: 'Groups Management',
       icon: '👥',
-      permission: 'group:read',
+      role: 'group:read',
     },
     {
       path: '/manager/users',
       label: 'Users Management',
       icon: '👤',
-      permission: 'user:read',
+      role: 'user:read',
     },
     {
       path: '/manager/books',
       label: 'Books Management',
       icon: '📚',
-      permission: 'book:read',
+      role: 'book:read',
     },
     {
       path: '/manager/lending',
       label: 'Lending Management',
       icon: '📖',
-      permission: 'book_lending:read',
+      role: 'book_lending:read',
     },
-  ].filter(item => hasRole(item.permission));
+  ].filter(item => hasRole(item.role));
 
   return (
     <div className="flex min-h-screen bg-gray-100">
