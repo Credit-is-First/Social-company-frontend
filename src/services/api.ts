@@ -1,8 +1,10 @@
 import axios, { AxiosResponse } from 'axios';
 import { Book, User, Loan, Role, Group, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse, CreateGroupDto, UpdateGroupDto } from '../types';
 
+const API_BASE_URL = 'http://localhost:3001';
+
 const api = axios.create({
-  baseURL: '',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
