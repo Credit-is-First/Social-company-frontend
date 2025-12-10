@@ -7,7 +7,7 @@ import { useConfirmDialog } from '../../utils/confirmDialog';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Users: React.FC = () => {
-  const { hasPermission } = useAuth();
+  const { hasRole } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -70,7 +70,7 @@ const Users: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">Users</h2>
-        {hasPermission('user:create') && (
+        {hasRole('user:create') && (
         <button
           onClick={handleCreate}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
@@ -123,7 +123,7 @@ const Users: React.FC = () => {
                 )}
               </div>
               <div className="flex justify-end space-x-2 mt-4">
-                {hasPermission('user:update') && (
+                {hasRole('user:update') && (
                 <button
                   onClick={() => handleEdit(user)}
                   className="text-blue-600 hover:text-blue-800"
@@ -131,7 +131,7 @@ const Users: React.FC = () => {
                   Edit
                 </button>
                 )}
-                {hasPermission('user:delete') && (
+                {hasRole('user:delete') && (
                 <button
                   onClick={() => handleDelete(user.id)}
                   className="text-red-600 hover:text-red-800"

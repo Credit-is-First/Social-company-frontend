@@ -7,7 +7,7 @@ import { useConfirmDialog } from '../../utils/confirmDialog';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Groups: React.FC = () => {
-  const { hasPermission } = useAuth();
+  const { hasRole } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -77,7 +77,7 @@ const Groups: React.FC = () => {
           <h2 className="text-3xl font-bold">Groups</h2>
           <p className="text-gray-600 mt-1">Manage user groups and their role assignments</p>
         </div>
-        {hasPermission('group:create') && (
+        {hasRole('group:create') && (
           <button
             onClick={handleCreate}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
@@ -103,7 +103,7 @@ const Groups: React.FC = () => {
                   )}
                 </div>
                 <div className="flex space-x-2">
-                  {hasPermission('group:update') && (
+                  {hasRole('group:update') && (
                     <button
                       onClick={() => handleEdit(group)}
                       className="text-blue-600 hover:text-blue-800 text-sm"
@@ -111,7 +111,7 @@ const Groups: React.FC = () => {
                       Edit
                     </button>
                   )}
-                  {!group.isDefault && hasPermission('group:delete') && (
+                  {!group.isDefault && hasRole('group:delete') && (
                     <button
                       onClick={() => handleDelete(group.id)}
                       className="text-red-600 hover:text-red-800 text-sm"

@@ -56,7 +56,7 @@ export interface User {
   updatedAt: string;
 }
 
-export type LoanStatus = 'active' | 'returned' | 'overdue';
+export type LoanStatus = 'active' | 'returned' | 'overdue' | 'pending' | 'declined';
 
 export interface Loan {
   id: string;

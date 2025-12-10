@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { authAPI } from '../services/api';
+import { jwtDecode } from 'jwt-decode';
+
+interface JWTPayload {
+  email: string;
+  sub: string;
+  roles: string[];
+  groups: string[];
+  iat?: number;
+  exp?: number;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -11,7 +21,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   hasRole: (roleName: string) => boolean;
-  hasPermission: (permission: string) => boolean;
   needsSetup: boolean | null;
   checkingSetup: boolean;
   completeSetup: () => void;
@@ -100,16 +109,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  // Helper function to check if user has a role
-  const hasRole = (roleName: string): boolean => {
-    if (!user || !user.roles) return false;
-    return user.roles.some(role => role.name === roleName);
+  // Decode JWT token to get roles from payload
+  const getRolesFromToken = (): string[] => {
+    if (!token) return [];
+    try {
+      const decoded = jwtDecode<JWTPayload>(token);
+      return decoded.roles || [];
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return [];
+    }
   };
 
-  // Helper function to check if user has a specific permission (role name format: resource:action)
-  const hasPermission = (permission: string): boolean => {
-    if (!user || !user.roles) return false;
-    return user.roles.some(role => role.name === permission);
+  // Helper function to check if user has a role (uses roles from JWT payload)
+  const hasRole = (roleName: string): boolean => {
+    if (!token) return false;
+    const roles = getRolesFromToken();
+    return roles.includes(roleName);
   };
 
   // Mark setup as complete (called after successful setup-super-admin)
@@ -126,7 +142,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user && !!token,
     loading,
     hasRole,
-    hasPermission,
     needsSetup,
     checkingSetup,
     completeSetup,

@@ -90,6 +90,8 @@ export const loansAPI = {
     api.get('/loans', { params: { userId, bookId } }),
   getActive: (): Promise<AxiosResponse<Loan[]>> => 
     api.get('/loans/active'),
+  getMyLoans: (): Promise<AxiosResponse<Loan[]>> => 
+    api.get('/loans/my'),
   getById: (id: string): Promise<AxiosResponse<Loan>> => 
     api.get(`/loans/${id}`),
   create: (data: CreateLoanDto): Promise<AxiosResponse<Loan>> => 
@@ -100,6 +102,8 @@ export const loansAPI = {
     api.patch(`/loans/${id}`, data),
   delete: (id: string): Promise<AxiosResponse<void>> => 
     api.delete(`/loans/${id}`),
+  cancelMyLoan: (id: string): Promise<AxiosResponse<void>> => 
+    api.delete(`/loans/my/${id}`),
 };
 
 export const authAPI = {

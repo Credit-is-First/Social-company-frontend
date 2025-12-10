@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import Personal from './components/Personal';
+import Favorite from './components/Favorite';
+import BookLending from './components/BookLending';
 import Books from '../Books';
 import Users from '../Users';
 import Admin from '../Admin';
 import Loans from '../Loans';
 import Groups from '../Groups';
 
-type TabType = 'personal' | 'books' | 'users' | 'roles' | 'groups' | 'loans';
+type TabType = 'personal' | 'favorite' | 'book-lending' | 'books' | 'users' | 'roles' | 'groups' | 'loans';
 
 const MyPage: React.FC = () => {
   const { hasRole } = useAuth();
@@ -19,6 +21,8 @@ const MyPage: React.FC = () => {
   const getActiveTab = (): TabType => {
     const path = location.pathname;
     if (path === '/my-page' || path === '/' || path === '/my-page/personal') return 'personal';
+    if (path === '/my-page/favorite') return 'favorite';
+    if (path === '/my-page/book-lending') return 'book-lending';
     if (path === '/my-page/users') return 'users';
     if (path === '/my-page/roles') return 'roles';
     if (path === '/my-page/groups') return 'groups';
@@ -49,6 +53,8 @@ const MyPage: React.FC = () => {
 
   const tabs = [
     { id: 'personal' as TabType, label: 'Personal', icon: '👤', show: true },
+    { id: 'favorite' as TabType, label: 'Favorite', icon: '⭐', show: true },
+    { id: 'book-lending' as TabType, label: 'Book Lending', icon: '📖', show: true },
     { id: 'books' as TabType, label: 'Books', icon: '📚', show: true },
     { id: 'users' as TabType, label: 'Users', icon: '👥', show: hasRole('admin') || hasRole('librarian') },
     { id: 'roles' as TabType, label: 'Roles', icon: '🔐', show: hasRole('admin') },
@@ -87,6 +93,8 @@ const MyPage: React.FC = () => {
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto px-6 py-8">
           {activeTab === 'personal' && <Personal />}
+          {activeTab === 'favorite' && <Favorite />}
+          {activeTab === 'book-lending' && <BookLending />}
           {activeTab === 'books' && <Books />}
           {activeTab === 'users' && <Users />}
           {activeTab === 'roles' && <Admin />}

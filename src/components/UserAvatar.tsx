@@ -3,10 +3,17 @@ import { useHistory } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const UserAvatar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const history = useHistory();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check if user has any manager permissions
+  const hasManagerAccess = hasRole('role:read') || 
+                          hasRole('group:read') || 
+                          hasRole('user:read') || 
+                          hasRole('book:read') || 
+                          hasRole('book_lending:read');
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -25,6 +32,11 @@ const UserAvatar: React.FC = () => {
   const handleMyPage = () => {
     setIsOpen(false);
     history.push('/my-page/personal');
+  };
+
+  const handleManagerPage = () => {
+    setIsOpen(false);
+    history.push('/manager');
   };
 
   const handleLogout = () => {
@@ -75,6 +87,15 @@ const UserAvatar: React.FC = () => {
             <span>👤</span>
             <span>My Page</span>
           </button>
+          {hasManagerAccess && (
+            <button
+              onClick={handleManagerPage}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center space-x-2"
+            >
+              <span>⚙️</span>
+              <span>Manager Page</span>
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center space-x-2"
