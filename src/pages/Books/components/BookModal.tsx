@@ -215,7 +215,7 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
               />
               {book?.filePath && !selectedFile && (
                 <p className="mt-2 text-sm text-gray-600">
-                  Current file: <a href={`http://localhost:3001${book.filePath}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current file</a>
+                  Current file: <a href={book.filePath} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current file</a>
                 </p>
               )}
             </div>
