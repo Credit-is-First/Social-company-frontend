@@ -83,13 +83,16 @@ const GroupModal: React.FC<GroupModalProps> = ({ group, roles, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h3 className="text-2xl font-bold mb-4">
-          {group ? 'Edit Group' : 'Add New Group'}
-        </h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-2xl font-bold">
+            {group ? 'Edit Group' : 'Add New Group'}
+          </h3>
+        </div>
         
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto p-6">
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Name *</label>
             <input
@@ -162,7 +165,9 @@ const GroupModal: React.FC<GroupModalProps> = ({ group, roles, onClose }) => {
             </p>
           </div>
 
-          <div className="flex justify-end space-x-3">
+          </div>
+
+          <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
             <button
               type="button"
               onClick={onClose}
