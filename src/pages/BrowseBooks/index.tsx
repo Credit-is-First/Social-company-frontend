@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { booksAPI, loansAPI } from '../../services/api';
 import { Book } from '../../types';
 import { notify } from '../../utils/notifications';
 import { useConfirmDialog } from '../../utils/confirmDialog';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUserSearch } from '../../contexts/UserSearchContext';
 
 const BrowseBooks: React.FC = () => {
   const { user } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const { searchTerm } = useUserSearch();
   const { confirm, Dialog } = useConfirmDialog();
 
-  const fetchBooks = async (): Promise<void> => {
+  console.log("=====BrowseBooks=====");
+
+  const fetchBooks = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await booksAPI.getAll(searchTerm || undefined);
@@ -25,11 +28,11 @@ const BrowseBooks: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchBooks();
-  }, [searchTerm]);
+  }, [fetchBooks]);
 
   const handleBorrow = async (book: Book): Promise<void> => {
     if (!user) {
@@ -63,16 +66,6 @@ const BrowseBooks: React.FC = () => {
       <div className="mb-6">
         <h2 className="text-3xl font-bold mb-2">Browse Books</h2>
         <p className="text-gray-600">Browse and borrow from our collection of approved books</p>
-      </div>
-
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Search books by title, author, ISBN, or category..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
       </div>
 
       {loading ? (

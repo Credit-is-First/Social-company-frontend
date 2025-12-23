@@ -1,35 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import Personal from './components/Personal';
 import Favorite from './components/Favorite';
 import BookLending from './components/BookLending';
-import Books from '../Books';
-import Users from '../Users';
-import Admin from '../Admin';
-import Loans from '../Loans';
-import Groups from '../Groups';
 
-type TabType = 'personal' | 'favorite' | 'book-lending' | 'books' | 'users' | 'roles' | 'groups' | 'loans';
+type TabType = 'personal' | 'favorite' | 'book-lending';
 
 const MyPage: React.FC = () => {
-  const { hasRole } = useAuth();
   const history = useHistory();
   const location = useLocation();
   
   // Determine active tab from URL
-  const getActiveTab = (): TabType => {
+  const getActiveTab = useCallback((): TabType => {
     const path = location.pathname;
     if (path === '/my-page' || path === '/' || path === '/my-page/personal') return 'personal';
     if (path === '/my-page/favorite') return 'favorite';
     if (path === '/my-page/book-lending') return 'book-lending';
-    if (path === '/my-page/users') return 'users';
-    if (path === '/my-page/roles') return 'roles';
-    if (path === '/my-page/groups') return 'groups';
-    if (path === '/my-page/books') return 'books';
-    if (path === '/my-page/loans') return 'loans';
     return 'personal';
-  };
+  }, [location.pathname]);
 
   const [activeTab, setActiveTab] = useState<TabType>(getActiveTab());
 
@@ -37,7 +25,7 @@ const MyPage: React.FC = () => {
   useEffect(() => {
     const tab = getActiveTab();
     setActiveTab(tab);
-  }, [location.pathname]);
+  }, [getActiveTab]);
 
   // Redirect to personal tab if on /my-page without sub-route
   useEffect(() => {
@@ -52,17 +40,10 @@ const MyPage: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'personal' as TabType, label: 'Personal', icon: '👤', show: true },
-    { id: 'favorite' as TabType, label: 'Favorite', icon: '⭐', show: true },
-    { id: 'book-lending' as TabType, label: 'Book Lending', icon: '📖', show: true },
-    { id: 'books' as TabType, label: 'Books', icon: '📚', show: true },
-    { id: 'users' as TabType, label: 'Users', icon: '👥', show: hasRole('admin') || hasRole('librarian') },
-    { id: 'roles' as TabType, label: 'Roles', icon: '🔐', show: hasRole('admin') },
-    { id: 'groups' as TabType, label: 'Groups', icon: '👥', show: hasRole('admin') },
-    { id: 'loans' as TabType, label: 'Loans', icon: '📖', show: hasRole('admin') || hasRole('librarian') },
+    { id: 'personal' as TabType, label: 'Personal', icon: '👤' },
+    { id: 'favorite' as TabType, label: 'Favorite', icon: '⭐' },
+    { id: 'book-lending' as TabType, label: 'Book Lending', icon: '📖' },
   ];
-
-  const visibleTabs = tabs.filter(tab => tab.show);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -72,7 +53,7 @@ const MyPage: React.FC = () => {
           <h2 className="text-xl font-bold text-gray-800">My Page</h2>
         </div>
         <nav className="mt-4">
-          {visibleTabs.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
@@ -95,11 +76,6 @@ const MyPage: React.FC = () => {
           {activeTab === 'personal' && <Personal />}
           {activeTab === 'favorite' && <Favorite />}
           {activeTab === 'book-lending' && <BookLending />}
-          {activeTab === 'books' && <Books />}
-          {activeTab === 'users' && <Users />}
-          {activeTab === 'roles' && <Admin />}
-          {activeTab === 'groups' && <Groups />}
-          {activeTab === 'loans' && <Loans />}
         </div>
       </div>
     </div>
