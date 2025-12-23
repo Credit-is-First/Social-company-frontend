@@ -32,11 +32,6 @@ const UsersManagement: React.FC = () => {
     }
   };
 
-  const handleCreate = (): void => {
-    setEditingUser(null);
-    setIsModalOpen(true);
-  };
-
   const handleEdit = (user: User): void => {
     setEditingUser(user);
     setIsModalOpen(true);
@@ -70,17 +65,6 @@ const UsersManagement: React.FC = () => {
     <div>
       <div className="mb-6">
         <h2 className="text-3xl font-bold">Users Management</h2>
-      </div>
-      <div className="flex justify-between items-center mb-6">
-        <div></div>
-        {hasRole('user:create') && (
-          <button
-            onClick={handleCreate}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-          >
-            + Add User
-          </button>
-        )}
       </div>
 
       <div className="mb-4">
@@ -148,7 +132,7 @@ const UsersManagement: React.FC = () => {
         </div>
       )}
 
-      {isModalOpen && (
+      {isModalOpen && editingUser && (
         <UserModal
           user={editingUser}
           onClose={handleModalClose}

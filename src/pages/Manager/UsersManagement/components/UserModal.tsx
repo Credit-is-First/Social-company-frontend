@@ -97,24 +97,21 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
         address: formData.address || undefined,
       };
 
-      if (user) {
-        // Update user basic info
-        await usersAPI.update(user.id, userData);
-        // Update roles if changed
-        if (formData.roleIds.length > 0 || user.roles?.length !== formData.roleIds.length) {
-          await usersAPI.updateRoles(user.id, formData.roleIds);
-        }
-        // Update groups if changed
-        if (formData.groupIds.length > 0 || user.groups?.length !== formData.groupIds.length) {
-          await usersAPI.updateGroups(user.id, formData.groupIds);
-        }
-        notify.success('User updated successfully');
-      } else {
-        await usersAPI.create(userData);
-        // After creating, update roles and groups if provided
-        // Note: We'd need the created user ID, but for now we'll just create the user
-        notify.success('User created successfully');
+      if (!user) {
+        throw new Error('Cannot create users. Users must sign up through registration.');
       }
+      
+      // Update user basic info
+      await usersAPI.update(user.id, userData);
+      // Update roles if changed
+      if (formData.roleIds.length > 0 || user.roles?.length !== formData.roleIds.length) {
+        await usersAPI.updateRoles(user.id, formData.roleIds);
+      }
+      // Update groups if changed
+      if (formData.groupIds.length > 0 || user.groups?.length !== formData.groupIds.length) {
+        await usersAPI.updateGroups(user.id, formData.groupIds);
+      }
+      notify.success('User updated successfully');
       onClose();
     } catch (error: any) {
       console.error('Error saving user:', error);
@@ -136,9 +133,9 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-2xl font-bold">
-            {user ? 'Edit User' : 'Add New User'}
-          </h3>
+        <h3 className="text-2xl font-bold">
+          Edit User
+        </h3>
         </div>
         
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -260,7 +257,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              {user ? 'Update' : 'Create'}
+              Update
             </button>
           </div>
         </form>
