@@ -26,6 +26,34 @@ export const booksAPI = {
     api.get('/books', { params }),
   getById: (id: string): Promise<AxiosResponse<Book>> => 
     api.get(`/books/${id}`),
+  exportToCSV: async (filters?: {
+    search?: string;
+    status?: string;
+    title?: string;
+    author?: string;
+    isbn?: string;
+    category?: string;
+  }): Promise<void> => {
+    const response = await api.get('/books/export/csv', {
+      params: filters,
+      responseType: 'blob', // Important for file download
+    });
+    
+    // Create a blob URL and trigger download
+    const blob = new Blob([response.data], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    link.download = `books-export-${timestamp}.csv`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
   create: (data: CreateBookDto, file?: File): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {

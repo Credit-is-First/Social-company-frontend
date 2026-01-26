@@ -237,13 +237,60 @@ const BooksManagement: React.FC = () => {
     }));
   };
 
+  const handleExportCSV = async (): Promise<void> => {
+    try {
+      // Build filters from current state
+      const statusMap: Record<TabType, string> = {
+        working: 'working',
+        reviewing: 'reviewing',
+        approved: 'approved',
+        declined: 'declined',
+        deprecated: 'deprecated',
+      };
+
+      const filters: any = {
+        status: statusMap[activeTab],
+      };
+
+      // Add global search if present
+      if (globalSearch) {
+        filters.search = globalSearch;
+      }
+
+      // Add column filters
+      Object.entries(columnFilters).forEach(([key, value]) => {
+        if (value) {
+          filters[key] = value;
+        }
+      });
+
+      await booksAPI.exportToCSV(filters);
+      notify.success('Books exported to CSV successfully');
+    } catch (error: any) {
+      console.error('Error exporting books:', error);
+      notify.error(error.response?.data?.message || 'Error exporting books to CSV');
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
         <h2 className="text-3xl font-bold">Books Management</h2>
       </div>
       <div className="flex justify-between items-center mb-6">
-        <div></div>
+        <div>
+          {hasRole('book:read') && (
+            <button
+              onClick={handleExportCSV}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export CSV
+            </button>
+          )}
+        </div>
         {hasRole('book:create') && (
           <button
             onClick={handleCreate}
