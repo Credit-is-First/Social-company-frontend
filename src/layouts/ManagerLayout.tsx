@@ -85,7 +85,7 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
+      <div className="w-64 bg-white shadow-lg border-r">
         <div className="p-4 border-b">
           <div className="flex items-center space-x-3">
             <div className="text-3xl">📚</div>

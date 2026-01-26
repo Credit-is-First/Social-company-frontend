@@ -86,11 +86,18 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
       };
 
       if (book) {
-        await booksAPI.update(book.id, bookData, selectedFile || undefined);
+        // If editing a deprecated or working book, automatically request review (change to reviewing)
+        const requestReview = book.status === 'deprecated' || book.status === 'working';
+        await booksAPI.update(book.id, { ...bookData, requestReview }, selectedFile || undefined);
+        if (requestReview) {
+          notify.success('Book updated and review requested. Status changed to reviewing.');
+        } else {
+          notify.success('Book updated successfully');
+        }
       } else {
         await booksAPI.create(bookData, selectedFile || undefined);
+        notify.success('Book created successfully');
       }
-      notify.success(book ? 'Book updated successfully' : 'Book created successfully');
       onClose();
     } catch (error: any) {
       console.error('Error saving book:', error);

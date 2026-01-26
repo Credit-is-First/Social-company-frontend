@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usersAPI } from '../../../services/api';
 import { User } from '../../../types';
 import UserModal from './components/UserModal';
@@ -15,11 +15,7 @@ const UsersManagement: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { confirm, Dialog } = useConfirmDialog();
 
-  useEffect(() => {
-    fetchUsers();
-  }, [searchTerm]);
-
-  const fetchUsers = async (): Promise<void> => {
+  const fetchUsers = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await usersAPI.getAll(searchTerm || undefined);
@@ -30,7 +26,11 @@ const UsersManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleEdit = (user: User): void => {
     setEditingUser(user);
@@ -89,25 +89,49 @@ const UsersManagement: React.FC = () => {
               {user.address && (
                 <p className="text-gray-600 mb-1">Address: {user.address}</p>
               )}
-              <div className="mt-2 flex flex-wrap gap-2">
-                {user.roles && user.roles.length > 0 ? (
-                  user.roles.map((role) => (
-                    <span
-                      key={role.id}
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        role.name === 'admin' ? 'bg-red-100 text-red-800' :
-                        role.name === 'librarian' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {role.name}
-                    </span>
-                  ))
-                ) : (
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                    No roles
-                  </span>
-                )}
+              <div className="mt-2">
+                <div className="mb-2">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Groups:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {user.groups && user.groups.length > 0 ? (
+                      user.groups.map((group) => (
+                        <span
+                          key={group.id}
+                          className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
+                        >
+                          {group.name}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                        No groups
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1">Direct Roles:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {user.roles && user.roles.length > 0 ? (
+                      user.roles.map((role) => (
+                        <span
+                          key={role.id}
+                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            role.name === 'admin' ? 'bg-red-100 text-red-800' :
+                            role.name === 'librarian' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {role.name}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                        No roles
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex justify-end space-x-2 mt-4">
                 {hasRole('user:update') && (

@@ -20,7 +20,7 @@ const BrowseBooks: React.FC = () => {
       setLoading(true);
       const response = await booksAPI.getAll(searchTerm || undefined);
       // Only show approved books
-      const approvedBooks = response.data.filter(book => book.isApproved);
+      const approvedBooks = response.data.filter(book => book.status === 'approved');
       setBooks(approvedBooks);
     } catch (error) {
       console.error('Error fetching books:', error);

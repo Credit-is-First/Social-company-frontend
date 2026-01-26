@@ -10,9 +10,11 @@ export interface Book {
   publishedDate?: string;
   isEbook?: boolean;
   filePath?: string;
-  isApproved?: boolean;
+  status?: 'working' | 'reviewing' | 'approved' | 'declined' | 'deprecated';
   approvedBy?: string;
   approvedAt?: string;
+  rejectionReason?: string;
+  deprecationReason?: string;
   createdAt: string;
   updatedAt: string;
 }

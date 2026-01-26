@@ -1,6 +1,6 @@
-import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { usersAPI, rolesAPI, groupsAPI } from '../../../../services/api';
-import { User, CreateUserDto, Role, Group } from '../../../../types';
+import { User, Role, Group } from '../../../../types';
 import { notify } from '../../../../utils/notifications';
 
 interface UserModalProps {
@@ -9,20 +9,12 @@ interface UserModalProps {
 }
 
 interface UserFormData {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
   roleIds: string[];
   groupIds: string[];
 }
 
 const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
   const [formData, setFormData] = useState<UserFormData>({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
     roleIds: [],
     groupIds: [],
   });
@@ -51,23 +43,12 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        address: user.address || '',
         roleIds: user.roles?.map(r => r.id) || [],
         groupIds: user.groups?.map(g => g.id) || [],
       });
     }
   }, [user]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
 
   const handleRoleToggle = (roleId: string): void => {
     setFormData({
@@ -90,25 +71,18 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     try {
-      const userData: CreateUserDto = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address || undefined,
-      };
-
       if (!user) {
         throw new Error('Cannot create users. Users must sign up through registration.');
       }
       
-      // Update user basic info
-      await usersAPI.update(user.id, userData);
       // Update roles if changed
-      if (formData.roleIds.length > 0 || user.roles?.length !== formData.roleIds.length) {
+      if (formData.roleIds.length !== (user.roles?.length || 0) || 
+          !formData.roleIds.every(id => user.roles?.some(r => r.id === id))) {
         await usersAPI.updateRoles(user.id, formData.roleIds);
       }
       // Update groups if changed
-      if (formData.groupIds.length > 0 || user.groups?.length !== formData.groupIds.length) {
+      if (formData.groupIds.length !== (user.groups?.length || 0) || 
+          !formData.groupIds.every(id => user.groups?.some(g => g.id === id))) {
         await usersAPI.updateGroups(user.id, formData.groupIds);
       }
       notify.success('User updated successfully');
@@ -140,82 +114,8 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
         
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Email *</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                disabled={!!user}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Phone *</label>
-              <input
-                type="text"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Address</label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
             {user && (
               <>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">Roles</label>
-                  <div className="border border-gray-300 rounded p-3 max-h-32 overflow-y-auto">
-                    {roles.length === 0 ? (
-                      <p className="text-sm text-gray-500">No roles available</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {roles.map((role) => (
-                          <label
-                            key={role.id}
-                            className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.roleIds.includes(role.id)}
-                              onChange={() => handleRoleToggle(role.id)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-sm">{role.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-2">Groups</label>
                   <div className="border border-gray-300 rounded p-3 max-h-32 overflow-y-auto">
@@ -235,6 +135,32 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose }) => {
                               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
                             <span className="text-sm">{group.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Roles</label>
+                  <div className="border border-gray-300 rounded p-3 max-h-32 overflow-y-auto">
+                    {roles.length === 0 ? (
+                      <p className="text-sm text-gray-500">No roles available</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {roles.map((role) => (
+                          <label
+                            key={role.id}
+                            className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.roleIds.includes(role.id)}
+                              onChange={() => handleRoleToggle(role.id)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-sm">{role.name}</span>
                           </label>
                         ))}
                       </div>

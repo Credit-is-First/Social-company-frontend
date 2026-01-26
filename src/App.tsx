@@ -62,14 +62,14 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Switch>
+        <Switch>
         {/* Auth routes - no layout */}
-        <Route exact path="/setup">
-          {needsSetup ? <Setup /> : <Redirect to="/login" />}
-        </Route>
-        <Route exact path="/login" component={Login} />
-        <Route exact path="/register" component={Register} />
-        <Route exact path="/reset-password" component={ResetPassword} />
+          <Route exact path="/setup">
+            {needsSetup ? <Setup /> : <Redirect to="/login" />}
+          </Route>
+          <Route exact path="/login" component={Login} />
+          <Route exact path="/register" component={Register} />
+          <Route exact path="/reset-password" component={ResetPassword} />
         
         {/* Manager routes - nested under ManagerLayout */}
         <AuthRoute path="/manager">
@@ -99,8 +99,8 @@ const AppContent: React.FC = () => {
         </AuthRoute>
         
         {/* 404 */}
-        <Route path="*" component={NotFound} />
-      </Switch>
+          <Route path="*" component={NotFound} />
+        </Switch>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );

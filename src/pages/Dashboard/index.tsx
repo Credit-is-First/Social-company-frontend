@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { booksAPI, usersAPI, loansAPI } from '../../services/api';
-import { Book, User, Loan } from '../../types';
+import { dashboardAPI, DashboardStats } from '../../services/api';
+import { Loan } from '../../types';
 
-interface Stats {
-  totalBooks: number;
-  totalUsers: number;
-  activeLoans: number;
-  overdueLoans: number;
-  pendingLoans: number;
-  totalLoans: number;
-  returnedLoans: number;
-  availableBooks: number;
-  borrowedBooks: number;
-  booksByCategory: { [key: string]: number };
-  recentLoans: Loan[];
+interface Stats extends DashboardStats {
   allLoans: Loan[];
 }
 
@@ -41,72 +30,11 @@ const Dashboard: React.FC = () => {
 
   const fetchStats = async (): Promise<void> => {
     try {
-      const [booksRes, usersRes, allLoansRes, activeLoansRes] = await Promise.all([
-        booksAPI.getAll(),
-        usersAPI.getAll(),
-        loansAPI.getAll(),
-        loansAPI.getActive(),
-      ]);
-
-      const books: Book[] = booksRes.data;
-      const users: User[] = usersRes.data;
-      const allLoans: Loan[] = allLoansRes.data;
-      const activeLoans: Loan[] = activeLoansRes.data;
-
-      const totalBooks = books.length;
-      const totalUsers = users.length;
-      const totalLoans = allLoans.length;
-      const activeLoansCount = activeLoans.length;
-      
-      // Calculate overdue loans (active loans with dueDate in the past)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const overdueLoans = activeLoans.filter(loan => {
-        const dueDate = new Date(loan.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate < today;
-      }).length;
-
-      // Calculate pending loans
-      const pendingLoans = allLoans.filter(loan => loan.status === 'active' && !loan.returnDate).length;
-
-      // Calculate returned loans
-      const returnedLoans = allLoans.filter(loan => loan.status === 'returned' || loan.returnDate).length;
-
-      // Calculate available and borrowed books
-      const availableBooks = books.reduce(
-        (sum: number, book: Book) => sum + book.availableCopies,
-        0
-      );
-      const borrowedBooks = books.reduce(
-        (sum: number, book: Book) => sum + (book.totalCopies - book.availableCopies),
-        0
-      );
-
-      // Calculate books by category
-      const booksByCategory: { [key: string]: number } = {};
-      books.forEach(book => {
-        booksByCategory[book.category] = (booksByCategory[book.category] || 0) + 1;
-      });
-
-      // Get recent loans (last 5, sorted by creation date)
-      const recentLoans = [...allLoans]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5);
+      const statsRes = await dashboardAPI.getStats();
+      const statsData = statsRes.data;
 
       setStats({
-        totalBooks,
-        totalUsers,
-        activeLoans: activeLoansCount,
-        overdueLoans,
-        pendingLoans,
-        totalLoans,
-        returnedLoans,
-        availableBooks,
-        borrowedBooks,
-        booksByCategory,
-        recentLoans,
-        allLoans,
+        ...statsData,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);

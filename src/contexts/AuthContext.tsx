@@ -71,8 +71,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        // Check if token is expired
+        const decoded = jwtDecode<JWTPayload>(storedToken);
+        const currentTime = Date.now() / 1000; // Convert to seconds
+        
+        if (decoded.exp && decoded.exp < currentTime) {
+          // Token is expired - clear storage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+        } else {
+          // Token is valid
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        // Invalid token - clear storage
+        console.error('Error decoding token:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+      }
     }
     setLoading(false);
   }, []);

@@ -11,6 +11,19 @@ const api = axios.create({
 export const booksAPI = {
   getAll: (search?: string): Promise<AxiosResponse<Book[]>> => 
     api.get('/books', { params: { search } }),
+  getPaginated: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+    status?: string;
+    title?: string;
+    author?: string;
+    isbn?: string;
+    category?: string;
+  }): Promise<AxiosResponse<{ data: Book[]; total: number; page: number; limit: number; totalPages: number }>> =>
+    api.get('/books', { params }),
   getById: (id: string): Promise<AxiosResponse<Book>> => 
     api.get(`/books/${id}`),
   create: (data: CreateBookDto, file?: File): Promise<AxiosResponse<Book>> => {
@@ -31,12 +44,12 @@ export const booksAPI = {
       },
     });
   },
-  update: (id: string, data: UpdateBookDto, file?: File): Promise<AxiosResponse<Book>> => {
+  update: (id: string, data: UpdateBookDto & { requestReview?: boolean }, file?: File): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
-      const value = data[key as keyof UpdateBookDto];
-      // Skip empty strings for optional fields
-      if (value !== undefined && value !== null && value !== '') {
+      const value = data[key as keyof (UpdateBookDto & { requestReview?: boolean })];
+      // Skip empty strings for optional fields, but include boolean false
+      if (value !== undefined && value !== null && (value !== '' || typeof value === 'boolean')) {
         formData.append(key, value.toString());
       }
     });
@@ -53,6 +66,10 @@ export const booksAPI = {
     api.delete(`/books/${id}`),
   approve: (id: string): Promise<AxiosResponse<Book>> => 
     api.patch(`/books/${id}/approve`),
+  decline: (id: string, reason?: string): Promise<AxiosResponse<Book>> => 
+    api.patch(`/books/${id}/decline`, { reason }),
+  deprecate: (id: string, reason?: string): Promise<AxiosResponse<Book>> => 
+    api.patch(`/books/${id}/deprecate`, { reason }),
 };
 
 export const usersAPI = {
@@ -136,6 +153,26 @@ export const groupsAPI = {
     api.delete(`/groups/${id}`),
 };
 
+export interface DashboardStats {
+  totalBooks: number;
+  totalUsers: number;
+  activeLoans: number;
+  overdueLoans: number;
+  pendingLoans: number;
+  totalLoans: number;
+  returnedLoans: number;
+  availableBooks: number;
+  borrowedBooks: number;
+  booksByCategory: { [key: string]: number };
+  recentLoans: Loan[];
+  allLoans: Loan[];
+}
+
+export const dashboardAPI = {
+  getStats: (): Promise<AxiosResponse<DashboardStats>> => 
+    api.get('/dashboard/stats'),
+};
+
 // Add token to requests if available
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -144,6 +181,25 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Handle 401 responses (expired/invalid token)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Only redirect if not already on auth pages
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/setup' && currentPath !== '/register' && currentPath !== '/reset-password') {
+        // Use window.location.href for hard redirect to ensure state is cleared
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;
 
