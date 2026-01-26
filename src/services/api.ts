@@ -54,6 +54,22 @@ export const booksAPI = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
+  importFromCSV: async (file: File): Promise<{
+    success: number;
+    errors: number;
+    results: Array<{ row: number; book: string; status: 'success' | 'error'; message?: string }>;
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/books/import/csv', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  },
   create: (data: CreateBookDto, file?: File): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
