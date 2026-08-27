@@ -1,30 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { loansAPI } from '../../../services/api';
 import { Loan, LoanStatus } from '../../../types';
 import LoanModal from './components/LoanModal';
 import { notify } from '../../../utils/notifications';
 import { useConfirmDialog } from '../../../utils/confirmDialog';
+import { useAuth } from '../../../contexts/AuthContext';
 
-type FilterType = 'all' | 'active';
+type FilterType = 'all' | 'pending' | 'active';
+
+const FILTERS: Array<{ key: FilterType; label: string }> = [
+  { key: 'all', label: 'All Loans' },
+  { key: 'pending', label: 'Pending Requests' },
+  { key: 'active', label: 'Active Loans' },
+];
 
 const LendingManagement: React.FC = () => {
+  const { hasRole } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const { confirm, Dialog } = useConfirmDialog();
 
-  useEffect(() => {
-    fetchLoans();
-  }, [filter]);
+  const canApprove = hasRole('book_lending:approve');
+  const canDecline = hasRole('book_lending:decline');
+  const canDelete = hasRole('book_lending:delete');
 
-  const fetchLoans = async (): Promise<void> => {
+  const fetchLoans = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       let response;
       if (filter === 'active') {
         response = await loansAPI.getActive();
+      } else if (filter === 'pending') {
+        response = await loansAPI.getPending();
       } else {
         response = await loansAPI.getAll();
       }
@@ -35,11 +44,49 @@ const LendingManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    fetchLoans();
+  }, [fetchLoans]);
 
   const handleCreate = (): void => {
-    setEditingLoan(null);
     setIsModalOpen(true);
+  };
+
+  const handleApprove = async (loan: Loan): Promise<void> => {
+    confirm(
+      'Approve Loan Request',
+      'Approve this request and hand out a copy of the book?',
+      async () => {
+        try {
+          await loansAPI.approve(loan.id);
+          notify.success('Loan request approved');
+          fetchLoans();
+        } catch (error: any) {
+          console.error('Error approving loan:', error);
+          notify.error(error.response?.data?.message || 'Error approving loan');
+        }
+      }
+    );
+  };
+
+  const handleDecline = async (loan: Loan): Promise<void> => {
+    confirm(
+      'Decline Loan Request',
+      'Decline this borrowing request?',
+      async () => {
+        try {
+          await loansAPI.decline(loan.id);
+          notify.success('Loan request declined');
+          fetchLoans();
+        } catch (error: any) {
+          console.error('Error declining loan:', error);
+          notify.error(error.response?.data?.message || 'Error declining loan');
+        }
+      },
+      { confirmText: 'Decline', confirmColor: 'red' }
+    );
   };
 
   const handleReturn = async (loan: Loan): Promise<void> => {
@@ -48,15 +95,12 @@ const LendingManagement: React.FC = () => {
       'Mark this loan as returned?',
       async () => {
         try {
-          await loansAPI.update(loan.id, {
-            returnDate: new Date().toISOString().split('T')[0],
-            status: 'returned' as LoanStatus,
-          });
+          await loansAPI.returnLoan(loan.id);
           notify.success('Loan marked as returned');
           fetchLoans();
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error returning loan:', error);
-          notify.error('Error returning loan');
+          notify.error(error.response?.data?.message || 'Error returning loan');
         }
       }
     );
@@ -71,9 +115,9 @@ const LendingManagement: React.FC = () => {
           await loansAPI.delete(id);
           notify.success('Loan deleted successfully');
           fetchLoans();
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error deleting loan:', error);
-          notify.error('Error deleting loan');
+          notify.error(error.response?.data?.message || 'Error deleting loan');
         }
       },
       { confirmText: 'Delete', confirmColor: 'red' }
@@ -82,7 +126,6 @@ const LendingManagement: React.FC = () => {
 
   const handleModalClose = (): void => {
     setIsModalOpen(false);
-    setEditingLoan(null);
     fetchLoans();
   };
 
@@ -90,8 +133,12 @@ const LendingManagement: React.FC = () => {
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
       case 'returned':
         return 'bg-gray-100 text-gray-800';
+      case 'declined':
+        return 'bg-red-100 text-red-800';
       case 'overdue':
         return 'bg-red-100 text-red-800';
       default:
@@ -106,35 +153,30 @@ const LendingManagement: React.FC = () => {
       </div>
       <div className="flex justify-between items-center mb-6">
         <div></div>
-        <button
-          onClick={handleCreate}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-        >
-          + New Loan
-        </button>
+        {canApprove && (
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          >
+            + New Loan
+          </button>
+        )}
       </div>
 
       <div className="mb-4 flex space-x-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded ${
-            filter === 'all'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          All Loans
-        </button>
-        <button
-          onClick={() => setFilter('active')}
-          className={`px-4 py-2 rounded ${
-            filter === 'active'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          Active Loans
-        </button>
+        {FILTERS.map((option) => (
+          <button
+            key={option.key}
+            onClick={() => setFilter(option.key)}
+            className={`px-4 py-2 rounded ${
+              filter === option.key
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -179,7 +221,23 @@ const LendingManagement: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                    {loan.status === 'active' && (
+                    {loan.status === 'pending' && canApprove && (
+                      <button
+                        onClick={() => handleApprove(loan)}
+                        className="text-green-600 hover:text-green-800"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    {loan.status === 'pending' && canDecline && (
+                      <button
+                        onClick={() => handleDecline(loan)}
+                        className="text-orange-600 hover:text-orange-800"
+                      >
+                        Decline
+                      </button>
+                    )}
+                    {(loan.status === 'active' || loan.status === 'overdue') && canApprove && (
                       <button
                         onClick={() => handleReturn(loan)}
                         className="text-green-600 hover:text-green-800"
@@ -187,12 +245,14 @@ const LendingManagement: React.FC = () => {
                         Return
                       </button>
                     )}
-                    <button
-                      onClick={() => handleDelete(loan.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(loan.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -204,16 +264,10 @@ const LendingManagement: React.FC = () => {
         </div>
       )}
 
-      {isModalOpen && (
-        <LoanModal
-          loan={editingLoan}
-          onClose={handleModalClose}
-        />
-      )}
+      {isModalOpen && <LoanModal onClose={handleModalClose} />}
       <Dialog />
     </div>
   );
 };
 
 export default LendingManagement;
-
