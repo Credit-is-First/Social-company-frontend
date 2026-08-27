@@ -19,6 +19,15 @@ interface BookFormData {
   isEbook: boolean;
 }
 
+const handleDownloadCurrentFile = async (book: Book): Promise<void> => {
+  try {
+    await booksAPI.downloadEbook(book.id, book.title);
+  } catch (error: any) {
+    console.error('Error downloading ebook:', error);
+    notify.error(error.response?.data?.message || 'Error downloading the ebook file');
+  }
+};
+
 const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
   const [formData, setFormData] = useState<BookFormData>({
     title: '',
@@ -225,7 +234,14 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
               />
               {book?.filePath && !selectedFile && (
                 <p className="mt-2 text-sm text-gray-600">
-                  Current file: <a href={`http://localhost:3001${book.filePath}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current file</a>
+                  Current file:{' '}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadCurrentFile(book)}
+                    className="text-blue-600 hover:underline focus:outline-none"
+                  >
+                    Download current file
+                  </button>
                 </p>
               )}
             </div>

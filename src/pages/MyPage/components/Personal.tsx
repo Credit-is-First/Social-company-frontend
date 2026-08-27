@@ -5,7 +5,7 @@ import { notify } from '../../../utils/notifications';
 import { useConfirmDialog } from '../../../utils/confirmDialog';
 
 const Personal: React.FC = () => {
-  const { user, hasRole } = useAuth();
+  const { user, updateCurrentUser } = useAuth();
   const { confirm, Dialog } = useConfirmDialog();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -40,17 +40,11 @@ const Personal: React.FC = () => {
         phone: formData.phone,
         address: formData.address,
       });
-      // Update user in localStorage
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        const updatedUser = { ...userData, ...response.data };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      }
+      // Nothing is cached in storage any more, so update the live session
+      // directly instead of writing to localStorage and reloading the page.
+      updateCurrentUser(response.data);
       notify.success('Profile updated successfully');
       setIsEditing(false);
-      // Reload page to refresh user context
-      setTimeout(() => window.location.reload(), 500);
     } catch (error: any) {
       notify.error(error.response?.data?.message || 'Error updating profile');
     }
