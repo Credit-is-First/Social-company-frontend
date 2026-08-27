@@ -23,6 +23,7 @@ const Register: React.FC = () => {
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [registered, setRegistered] = useState<boolean>(false);
   const { register, isAuthenticated } = useAuth();
   const history = useHistory();
   const location = useLocation();
@@ -64,14 +65,43 @@ const Register: React.FC = () => {
 
     try {
       await register(formData);
-      // Redirect to login page after successful registration
-      history.push('/login');
+      // Registration does not sign you in, so say what happens next rather than
+      // dropping the user on the login page with no explanation.
+      setRegistered(true);
     } catch (err: any) {
       setError(err.message || 'Failed to register');
     } finally {
       setLoading(false);
     }
   };
+
+  if (registered) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-6 text-center">
+          <div className="text-5xl">✅</div>
+          <h2 className="text-3xl font-extrabold text-gray-900">Account created</h2>
+          <div className="bg-white border border-gray-200 rounded-lg p-6 text-left space-y-3">
+            <p className="text-sm text-gray-700">
+              Your account <span className="font-medium">{formData.email}</span> is ready. Sign in to
+              browse the catalogue and request books.
+            </p>
+            <p className="text-sm text-gray-600">
+              You start in the <span className="font-medium">User</span> group, which lets you borrow
+              books. If you need to manage the catalogue, users or lending, ask an administrator to
+              add you to another group.
+            </p>
+          </div>
+          <button
+            onClick={() => history.push('/login')}
+            className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Go to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
