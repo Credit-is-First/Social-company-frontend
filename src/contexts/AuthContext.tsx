@@ -1,26 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
-import { authAPI } from '../services/api';
-import jwtDecode from 'jwt-decode';
-
-interface JWTPayload {
-  email: string;
-  sub: string;
-  roles: string[];
-  groups: string[];
-  iat?: number;
-  exp?: number;
-}
+import { User, AuthResponse } from '../types';
+import { authAPI, setSession, clearSession, refreshSession, onSessionChange } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
   hasRole: (roleName: string) => boolean;
+  /** Applies a profile update to the in-memory session without a round trip. */
+  updateCurrentUser: (updated: Partial<User>) => void;
   needsSetup: boolean | null;
   checkingSetup: boolean;
   completeSetup: () => void;
@@ -40,12 +31,39 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/** Direct roles plus every role inherited from the user's groups. */
+const roleNamesFromUser = (user: User | null): string[] => {
+  if (!user) {
+    return [];
+  }
+
+  const names: string[] = [];
+  const add = (name: string) => {
+    if (name && names.indexOf(name) === -1) {
+      names.push(name);
+    }
+  };
+
+  (user.roles || []).forEach(role => add(role.name));
+  (user.groups || []).forEach(group => (group.roles || []).forEach(role => add(role.name)));
+
+  return names;
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [checkingSetup, setCheckingSetup] = useState<boolean>(true);
+
+  // Keep React state in step with refreshes the axios interceptor performs
+  // behind the scenes (for example after an access token expires mid-session).
+  useEffect(() => {
+    onSessionChange((session: AuthResponse | null) => {
+      setUser(session ? session.user : null);
+    });
+    return () => onSessionChange(null);
+  }, []);
 
   // Check setup status on mount
   useEffect(() => {
@@ -66,48 +84,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkSetup();
   }, []);
 
+  /*
+   * There is no stored session to read on startup any more. Instead the browser
+   * presents the refresh cookie and the server hands back a fresh access token
+   * plus the current user — which also means role changes and account blocks
+   * take effect on the next page load rather than a token lifetime later.
+   */
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      try {
-        // Check if token is expired
-        const decoded = jwtDecode<JWTPayload>(storedToken);
-        const currentTime = Date.now() / 1000; // Convert to seconds
-        
-        if (decoded.exp && decoded.exp < currentTime) {
-          // Token is expired - clear storage
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
-        } else {
-          // Token is valid
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+    let cancelled = false;
+
+    // refreshSession() is shared with the 401 interceptor, so a remount or a
+    // parallel request cannot start a second rotation of the same cookie.
+    refreshSession()
+      .catch(() => {
+        // No cookie, or it is expired/revoked: simply not signed in.
+        clearSession();
+      })
+      .then(() => {
+        if (!cancelled) {
+          setLoading(false);
         }
-      } catch (error) {
-        // Invalid token - clear storage
-        console.error('Error decoding token:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-      }
-    }
-    setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
       const response = await authAPI.login({ email, password });
-      const { user: userData, access_token } = response.data;
-      
-      setUser(userData);
-      setToken(access_token);
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      setSession(response.data);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Login failed');
     }
@@ -115,39 +122,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (data: any): Promise<void> => {
     try {
-      // Register endpoint only returns user, not token
+      // Register endpoint only returns user, not a session
       // User needs to login separately after registration
       await authAPI.register(data);
-      // Don't set user/token here - redirect to login instead
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Registration failed');
     }
   };
 
   const logout = (): void => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Clear locally first so the UI never appears signed in while the network
+    // call is in flight; revoking server-side is best-effort.
+    clearSession();
+
+    authAPI.logout().catch(error => {
+      console.error('Could not revoke the session:', error);
+    });
   };
 
-  // Decode JWT token to get roles from payload
-  const getRolesFromToken = (): string[] => {
-    if (!token) return [];
-    try {
-      const decoded = jwtDecode<JWTPayload>(token);
-      return decoded.roles || [];
-    } catch (error) {
-      console.error('Error decoding token:', error);
-      return [];
-    }
-  };
+  /**
+   * Derived from the user record the server returned, so a revoked role stops
+   * granting UI access as soon as the session is refreshed. The server
+   * re-checks every request regardless.
+   */
+  const hasRole = (roleName: string): boolean =>
+    roleNamesFromUser(user).indexOf(roleName) !== -1;
 
-  // Helper function to check if user has a role (uses roles from JWT payload)
-  const hasRole = (roleName: string): boolean => {
-    if (!token) return false;
-    const roles = getRolesFromToken();
-    return roles.includes(roleName);
+  const updateCurrentUser = (updated: Partial<User>): void => {
+    setUser(current => (current ? { ...current, ...updated } : current));
   };
 
   // Mark setup as complete (called after successful setup-super-admin)
@@ -157,13 +159,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
-    token,
     login,
     register,
     logout,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user,
     loading,
     hasRole,
+    updateCurrentUser,
     needsSetup,
     checkingSetup,
     completeSetup,
@@ -171,4 +173,3 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-

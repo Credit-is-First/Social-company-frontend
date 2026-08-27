@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { dashboardAPI, DashboardStats } from '../../services/api';
-import { Loan } from '../../types';
-
-interface Stats extends DashboardStats {
-  allLoans: Loan[];
-}
 
 const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<Stats>({
+  const [stats, setStats] = useState<DashboardStats>({
     totalBooks: 0,
     totalUsers: 0,
     activeLoans: 0,
@@ -19,8 +14,8 @@ const Dashboard: React.FC = () => {
     availableBooks: 0,
     borrowedBooks: 0,
     booksByCategory: {},
+    loansOverTime: [],
     recentLoans: [],
-    allLoans: [],
   });
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -60,55 +55,27 @@ const Dashboard: React.FC = () => {
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
 
-  // Calculate loan status distribution from all loans
-  const calculateLoanStatusData = () => {
-    const active = stats.allLoans.filter(loan => loan.status === 'active' && !loan.returnDate).length;
-    const returned = stats.allLoans.filter(loan => loan.status === 'returned' || loan.returnDate).length;
-    const overdue = stats.overdueLoans; // Already calculated from active loans
-    
-    return [
-      { name: 'Active', value: active, color: '#3B82F6' },
-      { name: 'Returned', value: returned, color: '#10B981' },
-      { name: 'Overdue', value: overdue, color: '#EF4444' },
-    ];
-  };
-
-  const loanStatusData = calculateLoanStatusData();
+  // Counts come straight from the API now — the dashboard no longer downloads
+  // the whole loan table to count it in the browser.
+  const loanStatusData = [
+    { name: 'Active', value: stats.activeLoans, color: '#3B82F6' },
+    { name: 'Returned', value: stats.returnedLoans, color: '#10B981' },
+    { name: 'Overdue', value: stats.overdueLoans, color: '#EF4444' },
+  ];
 
   const bookAvailabilityData = [
     { name: 'Available', value: stats.availableBooks, color: '#10B981' },
     { name: 'Borrowed', value: stats.borrowedBooks, color: '#6366F1' },
   ];
 
-  // Prepare loans over time data (last 7 days)
-  const getLoansOverTime = () => {
-    const days = 7;
-    const today = new Date();
-    const loansByDate: { [key: string]: number } = {};
-    
-    // Initialize all days with 0
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateKey = date.toISOString().split('T')[0];
-      loansByDate[dateKey] = 0;
-    }
-
-    // Count loans by date
-    stats.allLoans.forEach(loan => {
-      const loanDate = new Date(loan.createdAt).toISOString().split('T')[0];
-      if (loansByDate.hasOwnProperty(loanDate)) {
-        loansByDate[loanDate]++;
-      }
-    });
-
-    return Object.entries(loansByDate).map(([date, count]) => ({
-      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      loans: count,
-    }));
-  };
-
-  const loansOverTimeData = getLoansOverTime();
+  // The API already buckets the last 7 days; we only relabel for display.
+  const loansOverTimeData = stats.loansOverTime.map(({ date, loans }) => {
+    const [year, month, day] = date.split('-').map(Number);
+    return {
+      date: new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      loans,
+    };
+  });
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
 
@@ -295,10 +262,10 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">
-                      {loan.book?.title || 'Unknown Book'}
+                      {loan.bookTitle}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {loan.user?.name || 'Unknown User'}
+                      {loan.userName}
                     </p>
                   </div>
                   <div className="text-right">

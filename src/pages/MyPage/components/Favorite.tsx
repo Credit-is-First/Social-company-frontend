@@ -1,66 +1,80 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { booksAPI } from '../../../services/api';
 import { Book } from '../../../types';
 import { notify } from '../../../utils/notifications';
 
+const FAVORITES_KEY = 'favoriteBooks';
+
+const readFavoriteIds = (): string[] => {
+  try {
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    const parsed = stored ? JSON.parse(stored) : [];
+    return Array.isArray(parsed) ? parsed.filter((id: any) => typeof id === 'string') : [];
+  } catch (error) {
+    console.error('Could not read favorites from storage:', error);
+    return [];
+  }
+};
+
 const Favorite: React.FC = () => {
   const [favoriteBooks, setFavoriteBooks] = useState<Book[]>([]);
-  const [allBooks, setAllBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    fetchBooks();
-    loadFavorites();
+  // Fetch exactly the favourited books instead of downloading the whole
+  // catalogue and intersecting it in the browser.
+  const loadFavorites = useCallback(async (): Promise<void> => {
+    const favoriteIds = readFavoriteIds();
+
+    if (favoriteIds.length === 0) {
+      setFavoriteBooks([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const responses = await Promise.all(
+        favoriteIds.map(id =>
+          booksAPI
+            .getById(id)
+            // A favourite may have been deleted or unpublished since it was saved.
+            .then(response => response.data)
+            .catch(() => null)
+        )
+      );
+
+      const found = responses.filter((book): book is Book => book !== null);
+      setFavoriteBooks(found);
+
+      // Drop dangling ids so the list stops shrinking on every visit.
+      if (found.length !== favoriteIds.length) {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(found.map(book => book.id)));
+      }
+    } catch (error) {
+      console.error('Error fetching favorite books:', error);
+      notify.error('Error fetching your favorite books');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchBooks = async (): Promise<void> => {
-    try {
-      const response = await booksAPI.getAll();
-      setAllBooks(response.data);
-    } catch (error) {
-      console.error('Error fetching books:', error);
-      notify.error('Error fetching books');
-    }
-  };
-
-  const loadFavorites = (): void => {
-    const favorites = localStorage.getItem('favoriteBooks');
-    if (favorites) {
-      const favoriteIds = JSON.parse(favorites);
-      const favoriteBooksList = allBooks.filter(book => favoriteIds.includes(book.id));
-      setFavoriteBooks(favoriteBooksList);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    if (allBooks.length > 0) {
-      loadFavorites();
-    }
-  }, [allBooks]);
+    loadFavorites();
+  }, [loadFavorites]);
 
   const toggleFavorite = (bookId: string): void => {
-    const favorites = localStorage.getItem('favoriteBooks');
-    let favoriteIds: string[] = favorites ? JSON.parse(favorites) : [];
-    
-    if (favoriteIds.includes(bookId)) {
+    let favoriteIds = readFavoriteIds();
+
+    if (favoriteIds.indexOf(bookId) !== -1) {
       favoriteIds = favoriteIds.filter(id => id !== bookId);
       notify.success('Removed from favorites');
     } else {
-      favoriteIds.push(bookId);
+      favoriteIds = favoriteIds.concat(bookId);
       notify.success('Added to favorites');
     }
-    
-    localStorage.setItem('favoriteBooks', JSON.stringify(favoriteIds));
-    const favoriteBooksList = allBooks.filter(book => favoriteIds.includes(book.id));
-    setFavoriteBooks(favoriteBooksList);
-  };
 
-  const isFavorite = (bookId: string): boolean => {
-    const favorites = localStorage.getItem('favoriteBooks');
-    if (!favorites) return false;
-    const favoriteIds = JSON.parse(favorites);
-    return favoriteIds.includes(bookId);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds));
+    setFavoriteBooks(current => current.filter(book => favoriteIds.indexOf(book.id) !== -1));
   };
 
   if (loading) {

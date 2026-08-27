@@ -85,7 +85,10 @@ export interface CreateUserDto {
   name: string;
   email: string;
   phone: string;
+  password: string;
   address?: string;
+  roleIds?: string[];
+  groupIds?: string[];
 }
 
 export interface UpdateUserDto extends Partial<CreateUserDto> {
@@ -148,5 +151,7 @@ export interface ChangePasswordDto {
 export interface AuthResponse {
   user: User;
   access_token: string;
+  // No refresh token here by design — it is delivered as an httpOnly cookie
+  // that page script cannot read.
 }
 
