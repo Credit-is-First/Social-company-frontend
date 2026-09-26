@@ -25,7 +25,7 @@
     "test": "craco test",
     "tailwind:jit": "node scripts/tailwind-jit.js",
     "eject": "react-scripts eject",
-    "postinstall": "node scripts/fix-minimatch-types.js"
+    "postinstall": "node scripts/fix-minimatch-types.js && node scripts/fix-react-error-overlay.js"
   },
   "eslintConfig": {
     "extends": [
