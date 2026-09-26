@@ -186,7 +186,8 @@ const BookLending: React.FC = () => {
                         <span className={`px-2 py-1 rounded text-xs ${getStatusColor(loan.status)}`}>
                           {overdue ? 'Overdue' : loan.status}
                         </span>
-                        {(loan.status === 'active' || loan.status === 'pending') && (
+                        {/* Only a request can be withdrawn; an active loan ends when the book is returned. */}
+                        {loan.status === 'pending' && (
                           <button
                             onClick={() => handleCancelLoan(loan.id)}
                             className="text-red-600 hover:text-red-800 text-sm font-medium"
