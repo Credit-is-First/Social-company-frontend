@@ -1,5 +1,22 @@
 const path = require('path');
 
+/**
+ * Keeps src/tailwind-jit.css in step with the source while the dev server
+ * runs. `prestart` has already generated it once; this regenerates it when a
+ * file changes. Only webpack's watch mode fires `watchRun`, so builds are
+ * unaffected (`prebuild` covers them).
+ */
+class TailwindJitWatchPlugin {
+  apply(compiler) {
+    let started = false;
+    compiler.hooks.watchRun.tap('TailwindJitWatchPlugin', () => {
+      if (started) return;
+      started = true;
+      require('./scripts/tailwind-jit').watch();
+    });
+  }
+}
+
 module.exports = {
   devServer: {
     port: 5000,
@@ -36,7 +53,9 @@ module.exports = {
           }
         });
       }
-      
+
+      webpackConfig.plugins.push(new TailwindJitWatchPlugin());
+
       return webpackConfig;
     },
   },

@@ -17,9 +17,13 @@
     "web-vitals": "^1.1.2"
   },
   "scripts": {
+    "prestart": "node scripts/tailwind-jit.js",
     "start": "craco start",
+    "prebuild": "node scripts/tailwind-jit.js",
     "build": "craco build",
+    "pretest": "node scripts/tailwind-jit.js",
     "test": "craco test",
+    "tailwind:jit": "node scripts/tailwind-jit.js",
     "eject": "react-scripts eject",
     "postinstall": "node scripts/fix-minimatch-types.js"
   },
