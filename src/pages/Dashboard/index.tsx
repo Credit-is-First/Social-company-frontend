@@ -2,6 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { dashboardAPI, DashboardStats } from '../../services/api';
 
+// Tailwind 4 shades (the -500 of each colour in tailwind.palette.js), so the
+// charts match the Tailwind classes around them. Recharts needs plain colour
+// strings, and CRA cannot import tailwind.palette.js from outside src/.
+const CHART_COLORS = {
+  blue: '#2b7fff',
+  emerald: '#00bc7d',
+  amber: '#fd9a00',
+  red: '#fb2c36',
+  indigo: '#615fff',
+  violet: '#8e51ff',
+  pink: '#f6339a',
+  cyan: '#00b8db',
+  lime: '#7ccf00',
+};
+
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalBooks: 0,
@@ -58,14 +73,14 @@ const Dashboard: React.FC = () => {
   // Counts come straight from the API now — the dashboard no longer downloads
   // the whole loan table to count it in the browser.
   const loanStatusData = [
-    { name: 'Active', value: stats.activeLoans, color: '#3B82F6' },
-    { name: 'Returned', value: stats.returnedLoans, color: '#10B981' },
-    { name: 'Overdue', value: stats.overdueLoans, color: '#EF4444' },
+    { name: 'Active', value: stats.activeLoans, color: CHART_COLORS.blue },
+    { name: 'Returned', value: stats.returnedLoans, color: CHART_COLORS.emerald },
+    { name: 'Overdue', value: stats.overdueLoans, color: CHART_COLORS.red },
   ];
 
   const bookAvailabilityData = [
-    { name: 'Available', value: stats.availableBooks, color: '#10B981' },
-    { name: 'Borrowed', value: stats.borrowedBooks, color: '#6366F1' },
+    { name: 'Available', value: stats.availableBooks, color: CHART_COLORS.emerald },
+    { name: 'Borrowed', value: stats.borrowedBooks, color: CHART_COLORS.indigo },
   ];
 
   // The API already buckets the last 7 days; we only relabel for display.
@@ -77,7 +92,16 @@ const Dashboard: React.FC = () => {
     };
   });
 
-  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
+  const COLORS = [
+    CHART_COLORS.blue,
+    CHART_COLORS.emerald,
+    CHART_COLORS.amber,
+    CHART_COLORS.red,
+    CHART_COLORS.violet,
+    CHART_COLORS.pink,
+    CHART_COLORS.cyan,
+    CHART_COLORS.lime,
+  ];
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -167,7 +191,7 @@ const Dashboard: React.FC = () => {
                   labelLine={false}
                   label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill={CHART_COLORS.blue}
                   dataKey="value"
                 >
                   {categoryChartData.map((entry, index) => (
@@ -194,7 +218,7 @@ const Dashboard: React.FC = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="value" fill="#3B82F6">
+                <Bar dataKey="value" fill={CHART_COLORS.blue}>
                   {loanStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -220,7 +244,7 @@ const Dashboard: React.FC = () => {
                 <YAxis dataKey="name" type="category" width={100} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="value" fill="#8884d8">
+                <Bar dataKey="value" fill={CHART_COLORS.blue}>
                   {bookAvailabilityData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -243,7 +267,7 @@ const Dashboard: React.FC = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="loans" stroke="#3B82F6" strokeWidth={2} />
+                <Line type="monotone" dataKey="loans" stroke={CHART_COLORS.blue} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
