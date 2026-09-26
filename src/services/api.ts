@@ -386,6 +386,8 @@ const redirectToLogin = (): void => {
 const runRefresh = (): Promise<string> =>
   refreshSession().then(session => session.access_token);
 
+const CREDENTIAL_CHECK_PATHS = ['/auth/change-password', '/auth/reset-password'];
+
 // Handle 401 responses: try to refresh once, then give up and sign out.
 api.interceptors.response.use(
   (response) => response,
@@ -398,6 +400,15 @@ api.interceptors.response.use(
     }
 
     const url: string = original.url || '';
+
+    // These endpoints answer 401 for a wrong password or security answer typed
+    // into the form, not for an expired session. Refreshing and retrying would
+    // only fail again and then sign the user out, hiding the real error.
+    const isCredentialCheck = CREDENTIAL_CHECK_PATHS.some(path => url.indexOf(path) !== -1);
+    if (isCredentialCheck) {
+      return Promise.reject(error);
+    }
+
     const isAuthCall = url.indexOf('/auth/refresh') !== -1 || url.indexOf('/auth/login') !== -1;
 
     if (original._retried || isAuthCall) {
