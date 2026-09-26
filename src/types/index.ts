@@ -39,17 +39,36 @@ export interface Group {
   updatedAt: string;
 }
 
+export type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
+
 export interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
   address?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
+  occupation?: string;
+  photoPath?: string;
   roles?: Role[];
   groups?: Group[];
   blocked?: boolean;
+  /** Computed server-side: every required profile field is filled in. */
+  profileComplete?: boolean;
+  /** Human-readable labels of the fields still outstanding. */
+  missingProfileFields?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateProfileDto {
+  name?: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
+  occupation?: string;
 }
 
 export type LoanStatus = 'active' | 'returned' | 'overdue' | 'pending' | 'declined';

@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { Book, User, Loan, LoanStatus, Role, Group, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse, CreateGroupDto, UpdateGroupDto } from '../types';
+import { Book, User, Loan, LoanStatus, Role, Group, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, UpdateProfileDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse, CreateGroupDto, UpdateGroupDto } from '../types';
 
 const api = axios.create({
   baseURL: '',
@@ -215,6 +215,13 @@ export const booksAPI = {
 };
 
 export const usersAPI = {
+  /**
+   * Photos come back as a blob rather than a plain <img src>: the access token
+   * lives in memory and is attached by this client as a header, which the
+   * browser would not do for an image request.
+   */
+  getPhotoBlob: (userId: string): Promise<Blob> =>
+    api.get(`/users/${userId}/photo`, { responseType: 'blob' }).then(response => response.data),
   getAll: (search?: string): Promise<AxiosResponse<User[]>> => 
     api.get('/users', { params: { search } }),
   getById: (id: string): Promise<AxiosResponse<User>> =>
@@ -293,10 +300,19 @@ export const authAPI = {
     axios.post('/auth/logout', {}, { withCredentials: true }),
   changePassword: (data: ChangePasswordDto): Promise<AxiosResponse<{ message: string }>> => 
     api.patch('/auth/change-password', data),
-  getProfile: (): Promise<AxiosResponse<User>> => 
+  getProfile: (): Promise<AxiosResponse<User>> =>
     api.get('/auth/profile'),
-  updateProfile: (data: { name?: string; phone?: string; address?: string }): Promise<AxiosResponse<User>> => 
+  updateProfile: (data: UpdateProfileDto): Promise<AxiosResponse<User>> =>
     api.patch('/auth/profile', data),
+  uploadProfilePhoto: (file: File): Promise<AxiosResponse<User>> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return api.post('/auth/profile/photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  removeProfilePhoto: (): Promise<AxiosResponse<User>> =>
+    api.delete('/auth/profile/photo'),
 };
 
 export const groupsAPI = {

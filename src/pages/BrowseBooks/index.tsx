@@ -5,6 +5,7 @@ import { notify } from '../../utils/notifications';
 import { useConfirmDialog } from '../../utils/confirmDialog';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserSearch } from '../../contexts/UserSearchContext';
+import ProfileCompletionBanner from '../MyPage/components/ProfileCompletionBanner';
 
 const PAGE_SIZE = 12;
 
@@ -51,9 +52,18 @@ const BrowseBooks: React.FC = () => {
     setPage(1);
   }, [searchTerm]);
 
+  // The server enforces this too; disabling here just avoids offering an action
+  // that is guaranteed to fail.
+  const profileComplete = !!user?.profileComplete;
+
   const handleBorrow = async (book: Book): Promise<void> => {
     if (!user) {
       notify.error('You must be logged in to borrow books');
+      return;
+    }
+
+    if (!profileComplete) {
+      notify.error('Complete your profile before borrowing books');
       return;
     }
 
@@ -84,6 +94,8 @@ const BrowseBooks: React.FC = () => {
         <h2 className="text-3xl font-bold mb-2">Browse Books</h2>
         <p className="text-gray-600">Browse and borrow from our collection of approved books</p>
       </div>
+
+      <ProfileCompletionBanner user={user} withLink />
 
       {loading ? (
         <div className="text-center py-8">Loading...</div>
@@ -121,14 +133,19 @@ const BrowseBooks: React.FC = () => {
                   </span>
                   <button
                     onClick={() => handleBorrow(book)}
-                    disabled={book.availableCopies <= 0}
+                    disabled={book.availableCopies <= 0 || !profileComplete}
+                    title={!profileComplete ? 'Complete your profile to borrow books' : undefined}
                     className={`px-4 py-2 rounded font-medium transition ${
-                      book.availableCopies > 0
+                      book.availableCopies > 0 && profileComplete
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
-                    {book.availableCopies > 0 ? 'Borrow' : 'Unavailable'}
+                    {book.availableCopies <= 0
+                      ? 'Unavailable'
+                      : profileComplete
+                      ? 'Borrow'
+                      : 'Profile incomplete'}
                   </button>
                 </div>
               </div>

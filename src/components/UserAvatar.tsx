@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserPhoto } from '../hooks/useUserPhoto';
 
 const UserAvatar: React.FC = () => {
   const { user, logout, hasRole } = useAuth();
+  const photoUrl = useUserPhoto(user?.id, !!user?.photoPath, user?.updatedAt);
   const history = useHistory();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -62,8 +64,12 @@ const UserAvatar: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300"
       >
-        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-          {getInitials(user.name || 'U')}
+        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden">
+          {photoUrl ? (
+            <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            getInitials(user.name || 'U')
+          )}
         </div>
         <div className="text-left">
           <div className="text-sm font-medium">{user.name}</div>
