@@ -251,6 +251,11 @@ const transformPlugin = plugin(({ addBase, addUtilities, e, theme, variants }) =
     ['scale-x', ['--transform-scale-x']],
     ['scale-y', ['--transform-scale-y']],
   ]);
+
+  // 1.9's own transform-none comes from the core `transform` plugin, which is
+  // emitted before these utilities and so could not cancel them. Re-declared
+  // here, after them, it wins again: `translate-x-4 md:transform-none` works.
+  addUtilities({ '.transform-none': { transform: 'none' } }, variants('transform'));
 });
 
 /** Tailwind 3 border and radius utilities 1.9 lacks: border-x/y/s/e, rounded-s/e/ss/se/es/ee. */
@@ -294,7 +299,16 @@ const bordersPlugin = plugin(({ addUtilities, e, theme, variants }) => {
 
 /** Tailwind 3's line-clamp-{1..6} and line-clamp-none. */
 const lineClampPlugin = plugin(({ addUtilities, variants }) => {
-  const utilities = { '.line-clamp-none': { '-webkit-line-clamp': 'unset' } };
+  // line-clamp-none undoes all four properties, so `line-clamp-3 md:line-clamp-none`
+  // really unclamps (as Tailwind 3.3 does).
+  const utilities = {
+    '.line-clamp-none': {
+      overflow: 'visible',
+      display: 'block',
+      '-webkit-box-orient': 'horizontal',
+      '-webkit-line-clamp': 'none',
+    },
+  };
   [1, 2, 3, 4, 5, 6].forEach(lines => {
     utilities[`.line-clamp-${lines}`] = {
       overflow: 'hidden',

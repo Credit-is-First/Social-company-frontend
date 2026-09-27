@@ -3,10 +3,16 @@
  * On-demand Tailwind compiler for a project stuck on Tailwind 1.9.
  *
  * Tailwind 1.9 generates a fixed stylesheet from the config, so newer syntax
- * such as `w-[250px]`, `bg-black/50`, `bg-sky-500` or `dark:` produces no CSS.
- * This script scans `src/` for class names, skips everything Tailwind 1.9
- * already generates, and writes CSS for the rest to `src/tailwind-jit.css`,
- * which `src/index.tsx` imports after `index.css`.
+ * such as `w-[250px]`, `bg-black/50` or `dark:` produces no CSS. This script
+ * scans `src/` for class names and writes CSS for every one it recognises to
+ * `src/tailwind-jit.css`, which `src/index.tsx` imports after `index.css`.
+ *
+ * That includes classes 1.9 already generates. This file loads last, so a 1.9
+ * class left out of it would always lose to the new-syntax classes in it, even
+ * where Tailwind orders it later (`bg-[#123] bg-opacity-50`). With every used
+ * class here, one sort puts them in Tailwind's order: media conditions (screen
+ * sizes last), then variants, then utility order taken from 1.9's own output.
+ * scripts/tailwind-jit.test.js pins that behaviour.
  *
  * Supported (Tailwind 3 syntax):
  * - Arbitrary values:     w-[250px], top-[-3px], bg-[#1da1f2], grid-cols-[1fr_2fr]
@@ -48,6 +54,7 @@ const ROOT = path.resolve(__dirname, '..');
 const SRC_DIR = path.join(ROOT, 'src');
 const OUT_FILE = path.join(SRC_DIR, 'tailwind-jit.css');
 const CONFIG_FILE = path.join(ROOT, 'tailwind.config.js');
+const PALETTE_FILE = path.join(ROOT, 'tailwind.palette.js');
 const SOURCE_EXT = /\.(tsx?|jsx?|html)$/;
 
 const tailwind = require('tailwindcss');
@@ -55,6 +62,15 @@ const resolveConfig = require('tailwindcss/resolveConfig');
 const flattenColorPalette = require('tailwindcss/lib/util/flattenColorPalette').default;
 // Tailwind 1.9 bundles PostCSS 7; use the same copy it was built against.
 const postcss = require(require.resolve('postcss', { paths: [path.dirname(require.resolve('tailwindcss'))] }));
+
+/**
+ * Lookup tables are keyed by words taken from source code, so they must not
+ * inherit from Object.prototype: a stray `constructor` or `toString` in src/
+ * would otherwise resolve to a built-in function and crash the run.
+ */
+function dict(obj) {
+  return Object.assign(Object.create(null), obj);
+}
 
 // ---------------------------------------------------------------------------
 // Tailwind 3 data that 1.9 lacks
@@ -64,13 +80,13 @@ const postcss = require(require.resolve('postcss', { paths: [path.dirname(requir
 
 const DEFAULT_SCREENS = { '2xl': '1536px' };
 
-const BLUR = { none: '0', sm: '4px', DEFAULT: '8px', md: '12px', lg: '16px', xl: '24px', '2xl': '40px', '3xl': '64px' };
-const BRIGHTNESS = { 0: '0', 50: '.5', 75: '.75', 90: '.9', 95: '.95', 100: '1', 105: '1.05', 110: '1.1', 125: '1.25', 150: '1.5', 200: '2' };
-const CONTRAST = { 0: '0', 50: '.5', 75: '.75', 100: '1', 125: '1.25', 150: '1.5', 200: '2' };
-const SATURATE = { 0: '0', 50: '.5', 100: '1', 150: '1.5', 200: '2' };
-const HUE_ROTATE = { 0: '0deg', 15: '15deg', 30: '30deg', 60: '60deg', 90: '90deg', 180: '180deg' };
-const PERCENT_TOGGLE = { DEFAULT: '100%', 0: '0' };
-const DROP_SHADOW = {
+const BLUR = dict({ none: '0', sm: '4px', DEFAULT: '8px', md: '12px', lg: '16px', xl: '24px', '2xl': '40px', '3xl': '64px' });
+const BRIGHTNESS = dict({ 0: '0', 50: '.5', 75: '.75', 90: '.9', 95: '.95', 100: '1', 105: '1.05', 110: '1.1', 125: '1.25', 150: '1.5', 200: '2' });
+const CONTRAST = dict({ 0: '0', 50: '.5', 75: '.75', 100: '1', 125: '1.25', 150: '1.5', 200: '2' });
+const SATURATE = dict({ 0: '0', 50: '.5', 100: '1', 150: '1.5', 200: '2' });
+const HUE_ROTATE = dict({ 0: '0deg', 15: '15deg', 30: '30deg', 60: '60deg', 90: '90deg', 180: '180deg' });
+const PERCENT_TOGGLE = dict({ DEFAULT: '100%', 0: '0' });
+const DROP_SHADOW = dict({
   sm: 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05))',
   DEFAULT: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.06))',
   md: 'drop-shadow(0 4px 3px rgba(0, 0, 0, 0.07)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.06))',
@@ -78,9 +94,9 @@ const DROP_SHADOW = {
   xl: 'drop-shadow(0 20px 13px rgba(0, 0, 0, 0.03)) drop-shadow(0 8px 5px rgba(0, 0, 0, 0.08))',
   '2xl': 'drop-shadow(0 25px 25px rgba(0, 0, 0, 0.15))',
   none: 'drop-shadow(0 0 #0000)',
-};
-const WIDTH_SCALE = { 0: '0px', 1: '1px', 2: '2px', 4: '4px', 8: '8px' };
-const COLUMNS = { auto: 'auto', '3xs': '16rem', '2xs': '18rem', xs: '20rem', sm: '24rem', md: '28rem', lg: '32rem', xl: '36rem', '2xl': '42rem', '3xl': '48rem', '4xl': '56rem', '5xl': '64rem', '6xl': '72rem', '7xl': '80rem' };
+});
+const WIDTH_SCALE = dict({ 0: '0px', 1: '1px', 2: '2px', 4: '4px', 8: '8px' });
+const COLUMNS = dict({ auto: 'auto', '3xs': '16rem', '2xs': '18rem', xs: '20rem', sm: '24rem', md: '28rem', lg: '32rem', xl: '36rem', '2xl': '42rem', '3xl': '48rem', '4xl': '56rem', '5xl': '64rem', '6xl': '72rem', '7xl': '80rem' });
 const BLEND_MODES = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-lighter'];
 
 const FILTERS = ['blur', 'brightness', 'contrast', 'grayscale', 'hue-rotate', 'invert', 'saturate', 'sepia', 'drop-shadow'];
@@ -94,7 +110,7 @@ const EMPTY = 'var(--tw-empty, /*!*/ /*!*/)';
 // Variants
 // ---------------------------------------------------------------------------
 
-const PSEUDO_CLASSES = {
+const PSEUDO_CLASSES = dict({
   hover: ':hover', focus: ':focus', active: ':active', visited: ':visited', target: ':target',
   'focus-within': ':focus-within', 'focus-visible': ':focus-visible',
   disabled: ':disabled', enabled: ':enabled', checked: ':checked', indeterminate: ':indeterminate',
@@ -104,20 +120,60 @@ const PSEUDO_CLASSES = {
   first: ':first-child', last: ':last-child', only: ':only-child',
   odd: ':nth-child(odd)', even: ':nth-child(even)',
   'first-of-type': ':first-of-type', 'last-of-type': ':last-of-type', 'only-of-type': ':only-of-type',
-};
+});
 
-const PSEUDO_ELEMENTS = {
+const PSEUDO_ELEMENTS = dict({
   before: '::before', after: '::after', placeholder: '::placeholder', selection: '::selection',
   file: '::file-selector-button', marker: '::marker', 'first-letter': '::first-letter', 'first-line': '::first-line',
-};
+});
 
-const MEDIA_FEATURES = {
+const MEDIA_FEATURES = dict({
   dark: '(prefers-color-scheme: dark)',
   'motion-safe': '(prefers-reduced-motion: no-preference)',
   'motion-reduce': '(prefers-reduced-motion: reduce)',
   portrait: '(orientation: portrait)',
   landscape: '(orientation: landscape)',
-};
+});
+
+/**
+ * Media condition order, as Tailwind 3 registers them: supports, motion, dark
+ * and print come before screen sizes, so at a given width `lg:` beats `dark:`,
+ * and orientation comes last. A class with several takes the highest.
+ */
+const MEDIA_RANK = dict({
+  supports: 10,
+  'motion-safe': 20,
+  'motion-reduce': 20,
+  dark: 30,
+  print: 40,
+  arbitraryMedia: 50,
+  screen: 100, // + the screen's position, smallest first
+  portrait: 200,
+  landscape: 200,
+});
+
+/**
+ * Variant order, as Tailwind 3 registers them: pseudo-elements, then
+ * pseudo-classes (hover before focus before active before disabled), then
+ * group-/peer-, aria-/data-, and arbitrary selectors. A rule's variants form a
+ * bitmask over these slots, so rules sort as Tailwind 3's do.
+ */
+const VARIANT_ORDER = [
+  'first-letter', 'first-line', 'marker', 'selection', 'file', 'placeholder', 'before', 'after',
+  'first', 'last', 'only', 'odd', 'even', 'first-of-type', 'last-of-type', 'only-of-type',
+  'visited', 'target', 'open', 'default', 'checked', 'indeterminate', 'placeholder-shown', 'autofill',
+  'optional', 'required', 'valid', 'invalid', 'read-only', 'empty',
+  'focus-within', 'hover', 'focus', 'focus-visible', 'active', 'enabled', 'disabled',
+  'group', 'peer', 'aria', 'data', 'arbitrary',
+];
+
+function variantSlot(name) {
+  const direct = VARIANT_ORDER.indexOf(name);
+  if (direct !== -1) return direct;
+  if (/^aria-/.test(name)) return VARIANT_ORDER.indexOf('aria');
+  if (/^data-/.test(name)) return VARIANT_ORDER.indexOf('data');
+  return VARIANT_ORDER.indexOf('arbitrary');
+}
 
 // Tailwind 3's boolean aria-* variants: aria-selected -> [aria-selected="true"]
 const ARIA_BOOLEANS = ['busy', 'checked', 'disabled', 'expanded', 'hidden', 'pressed', 'readonly', 'required', 'selected'];
@@ -174,28 +230,120 @@ function escapeClass(name) {
   return out;
 }
 
-function hexToRgb(hex) {
+/**
+ * '#rgb', '#rgba', '#rrggbb' or '#rrggbbaa' to { rgb: [r, g, b], alpha }, where
+ * alpha is null unless the hex carries its own alpha channel.
+ */
+function parseHex(hex) {
   let h = hex.replace('#', '');
   if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
   if (!/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(h)) return null;
   const n = parseInt(h.slice(0, 6), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const alpha = h.length === 8 ? +(parseInt(h.slice(6), 16) / 255).toFixed(3) : null;
+  return { rgb: [(n >> 16) & 255, (n >> 8) & 255, n & 255], alpha };
+}
+
+function hexToRgb(hex) {
+  const parsed = parseHex(hex);
+  return parsed ? parsed.rgb : null;
+}
+
+const MATH_FUNCTIONS = ['calc', 'min', 'max', 'clamp'];
+const OPAQUE_FUNCTIONS = ['var', 'env'];
+
+/** Index of the ')' matching the '(' at `open`, or -1. */
+function matchingParen(text, open) {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')' && --depth === 0) return i;
+  }
+  return -1;
 }
 
 /**
- * Arbitrary value text: `_` means a space, `\_` a literal underscore, and
- * operators inside calc()/min()/max()/clamp() get the spaces CSS requires
- * (`calc(100vh-4rem)` becomes `calc(100vh - 4rem)`), as Tailwind 3 does.
+ * Puts the spaces CSS requires around + and - (and, for readability, * and /)
+ * inside calc()/min()/max()/clamp(), as Tailwind 3 does: `calc(100vh-4rem)`
+ * becomes `calc(100vh - 4rem)`. var()/env() arguments are copied untouched, so
+ * `var(--gap-2)` keeps its hyphens; a sign (`-1`, `(-x)`) and an exponent
+ * (`1e-3`) are left alone; and only whole function names count, so `minmax(`
+ * is not mistaken for `max(`.
+ */
+function spaceMath(text, inMath) {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    // A function name starts with a letter and follows anything but a letter or
+    // digit — including an operator: in `100vh-env(...)` the `-` is subtraction.
+    const fn = /^([a-zA-Z][a-zA-Z0-9-]*)\(/.exec(text.slice(i));
+    const prev = i > 0 ? text[i - 1] : '';
+    if (fn && !/[a-zA-Z0-9_]/.test(prev)) {
+      const open = i + fn[1].length;
+      const close = matchingParen(text, open);
+      if (close === -1) { out += text.slice(i); break; }
+      const name = fn[1].toLowerCase();
+      const args = text.slice(open + 1, close);
+      if (OPAQUE_FUNCTIONS.indexOf(name) !== -1) {
+        out += text.slice(i, close + 1);
+      } else {
+        out += `${fn[1]}(${spaceMath(args, MATH_FUNCTIONS.indexOf(name) !== -1 || inMath)})`;
+      }
+      i = close + 1;
+      continue;
+    }
+
+    const c = text[i];
+    if (inMath && /[+\-*/]/.test(c)) {
+      const before = out.replace(/\s+$/, '');
+      const last = before.slice(-1);
+      const isExponent = /[eE]/.test(last) && /\d[eE]$/.test(before) && /\d/.test(text[i + 1] || '');
+      if (/[0-9a-zA-Z%)]/.test(last) && !isExponent) {
+        out = `${before} ${c} `;
+        i++;
+        while (text[i] === ' ') i++;
+        continue;
+      }
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+/**
+ * Arbitrary value text: `_` means a space, `\_` a literal underscore, and math
+ * functions get spaced operators (see spaceMath).
  */
 function decodeArbitrary(raw) {
   if (/^url\(/.test(raw)) return raw;
   const spaced = raw.replace(/\\_/g, '\u0000').replace(/_/g, ' ').replace(/\u0000/g, '_');
-  return spaced.replace(/(calc|min|max|clamp)\((.*)\)/g, (match, fn, inner) =>
-    `${fn}(${inner.replace(/([0-9a-z%)])\s*([+\-*/])\s*(?=[0-9.(]|var\()/gi, '$1 $2 ')})`);
+  return spaceMath(spaced, false);
 }
 
+// CSS named colours, so text-[red] is a colour rather than a font size.
+const NAMED_COLORS = ('aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet ' +
+  'brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan ' +
+  'darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred ' +
+  'darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue ' +
+  'dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green ' +
+  'greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon ' +
+  'lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon ' +
+  'lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta ' +
+  'maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen ' +
+  'mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab ' +
+  'orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum ' +
+  'powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna ' +
+  'silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet ' +
+  'wheat white whitesmoke yellow yellowgreen').split(' ');
+
 function isColorValue(v) {
-  return /^(#[0-9a-fA-F]{3,8}|(rgba?|hsla?|hwb|lab|lch|oklch|oklab|color)\(.*\)|transparent|currentColor|current|inherit)$/.test(v);
+  return /^(#[0-9a-fA-F]{3,8}|(rgba?|hsla?|hwb|lab|lch|oklch|oklab|color)\(.*\)|transparent|currentColor|current|inherit)$/.test(v) ||
+    NAMED_COLORS.indexOf(v.toLowerCase()) !== -1;
+}
+
+/** Background positions: keywords, or lengths/percentages (possibly several). */
+function isPositionValue(v) {
+  return v.split(/\s+/).every(part => /^(center|top|bottom|left|right)$/.test(part) || isLengthValue(part));
 }
 
 function isLengthValue(v) {
@@ -224,11 +372,17 @@ function fraction(key) {
  * utility, so variants can be applied to 1.9 utilities it has no variant for.
  */
 function buildBaseline() {
-  delete require.cache[CONFIG_FILE];
+  clearConfigCache();
   const input = '@tailwind base; @tailwind components; @tailwind utilities;';
   return postcss([tailwind(CONFIG_FILE)]).process(input, { from: undefined }).then(result => {
     const defined = new Set();
     const utilities = new Map();
+    // Tailwind's own utility order: each plain utility's position in 1.9's
+    // output, and the earliest position of each CSS property, so a new-syntax
+    // class (px-[3px]) sorts where 1.9 puts the same property (px-*).
+    const order = new Map();
+    const propertyOrder = new Map();
+    let position = 0;
     const classRe = /^\.((?:\\.|[a-zA-Z0-9_-])+)(.*)$/;
     // Suffixes a plain utility may carry (placeholder colours, space/divide).
     const reusableSuffix = /^(::?[a-z-]+)?$|^ > :not\(template\) ~ :not\(template\)$/;
@@ -245,31 +399,51 @@ function buildBaseline() {
         rule.walkDecls(d => { decls.push([d.prop, d.value]); });
         if (!utilities.has(name)) utilities.set(name, []);
         utilities.get(name).push({ suffix: m[2], decls });
+
+        // The last position wins, as it does in CSS: a utility re-declared later
+        // (transform-none, after the transform utilities) takes that place.
+        position++;
+        order.set(name, position);
+        if (decls.length > 0 && !propertyOrder.has(decls[0][0])) propertyOrder.set(decls[0][0], position);
       });
     });
-    return { defined, utilities };
+    return { defined, utilities, order, propertyOrder };
   });
+}
+
+/** Where a rule sorts among utilities: 1.9's position for the class or its first property. */
+function utilityOrder(utility, resolved, baseline) {
+  if (baseline.order.has(utility)) return baseline.order.get(utility);
+  const firstDecl = resolved[0] && resolved[0].decls[0];
+  if (firstDecl && baseline.propertyOrder.has(firstDecl[0])) return baseline.propertyOrder.get(firstDecl[0]);
+  return Number.MAX_SAFE_INTEGER; // No 1.9 counterpart (size-*, filters, arbitrary properties): last.
 }
 
 // ---------------------------------------------------------------------------
 // Theme
 // ---------------------------------------------------------------------------
 
-function loadTheme() {
+/** The config requires the palette, so both must be reloaded to see edits. */
+function clearConfigCache() {
   delete require.cache[CONFIG_FILE];
+  delete require.cache[PALETTE_FILE];
+}
+
+function loadTheme() {
+  clearConfigCache();
   const theme = resolveConfig(require(CONFIG_FILE)).theme;
 
-  const colors = flattenColorPalette(theme.colors);
+  const colors = dict(flattenColorPalette(theme.colors));
   colors.current = 'currentColor';
   colors.inherit = 'inherit';
 
-  const screens = Object.assign({}, theme.screens, DEFAULT_SCREENS, theme.screens);
+  const screens = dict(Object.assign({}, theme.screens, DEFAULT_SCREENS, theme.screens));
   const screenOrder = Object.keys(screens).sort((a, b) => parseFloat(screens[a]) - parseFloat(screens[b]));
 
   return {
     colors,
-    spacing: theme.spacing,
-    opacity: theme.opacity,
+    spacing: dict(theme.spacing),
+    opacity: dict(theme.opacity),
     screens,
     screenOrder,
   };
@@ -280,7 +454,7 @@ function loadTheme() {
 // ---------------------------------------------------------------------------
 
 /** Colour utilities: prefix -> how a colour is applied. */
-const COLOR_UTILITIES = {
+const COLOR_UTILITIES = dict({
   bg: { props: ['background-color'], opacityVar: '--bg-opacity' },
   text: { props: ['color'], opacityVar: '--text-opacity' },
   border: { props: ['border-color'], opacityVar: '--border-opacity' },
@@ -304,18 +478,26 @@ const COLOR_UTILITIES = {
   accent: { props: ['accent-color'] },
   caret: { props: ['caret-color'] },
   outline: { props: ['outline-color'] },
-};
+});
 
 function transparentOf(color) {
   const rgb = color.charAt(0) === '#' ? hexToRgb(color) : null;
   return rgb ? `rgba(${rgb.join(', ')}, 0)` : 'rgba(255, 255, 255, 0)';
 }
 
-/** Declarations for a colour utility. `alpha` is null for no modifier. */
-function colorDecls(prefix, color, alpha) {
+/** Declarations for a colour utility. `modifierAlpha` is null for no /modifier. */
+function colorDecls(prefix, color, modifierAlpha) {
   const spec = COLOR_UTILITIES[prefix];
-  const rgb = color.charAt(0) === '#' ? hexToRgb(color) : null;
-  if (alpha !== null && !rgb) return null; // Opacity needs a hex colour to split.
+  const parsed = color.charAt(0) === '#' ? parseHex(color) : null;
+  const rgb = parsed ? parsed.rgb : null;
+  if (modifierAlpha !== null && !rgb) return null; // Opacity needs a hex colour to split.
+
+  // A colour with its own alpha (#11223380) keeps it, combined with any modifier,
+  // and skips the opacity-variable form, which would make it opaque again.
+  let alpha = modifierAlpha;
+  if (parsed && parsed.alpha !== null) {
+    alpha = modifierAlpha !== null ? String(+(parsed.alpha * Number(modifierAlpha)).toFixed(3)) : String(parsed.alpha);
+  }
 
   const fixed = alpha !== null ? `rgba(${rgb.join(', ')}, ${alpha})` : color;
 
@@ -397,7 +579,7 @@ function arbitraryShadow(value) {
   return [['--tw-shadow', value], ['--tw-shadow-colored', colored], ['box-shadow', SHADOW_COMPOSE]];
 }
 
-const ARBITRARY = {
+const ARBITRARY = dict({
   w: single('width'), h: single('height'),
   'min-w': single('min-width'), 'max-w': single('max-width'),
   'min-h': single('min-height'), 'max-h': single('max-height'),
@@ -443,7 +625,7 @@ const ARBITRARY = {
   'line-clamp': v => [['overflow', 'hidden'], ['display', '-webkit-box'], ['-webkit-box-orient', 'vertical'], ['-webkit-line-clamp', v]],
   cursor: single('cursor'),
   'will-change': single('will-change'),
-};
+});
 
 /** Utilities whose meaning depends on the value's type. */
 function typedArbitrary(prefix, value, hint) {
@@ -451,16 +633,17 @@ function typedArbitrary(prefix, value, hint) {
   const asLength = hint === 'length' || (!hint && isLengthValue(value));
   switch (prefix) {
     case 'text':
-      if (asColor) return 'color';
+      // Tailwind 3 reads an unhinted var() as a colour.
+      if (asColor || (!hint && /^var\(/.test(value))) return 'color';
       return [['font-size', value]];
     case 'bg':
       if (hint === 'url' || hint === 'image' || /^(url|linear-gradient|radial-gradient|conic-gradient)\(/.test(value)) return [['background-image', value]];
-      if (hint === 'position') return [['background-position', value]];
-      if (hint === 'size') return [['background-size', value]];
+      if (hint === 'length' || hint === 'size') return [['background-size', value]];
+      if (hint === 'position' || (!hint && !asColor && isPositionValue(value))) return [['background-position', value]];
       return 'color';
     case 'border': case 'border-x': case 'border-y': case 'border-t': case 'border-r': case 'border-b': case 'border-l': {
       if (!asLength) return 'color';
-      const sides = { border: ['border-width'], 'border-x': ['border-left-width', 'border-right-width'], 'border-y': ['border-top-width', 'border-bottom-width'], 'border-t': ['border-top-width'], 'border-r': ['border-right-width'], 'border-b': ['border-bottom-width'], 'border-l': ['border-left-width'] };
+      const sides = dict({ border: ['border-width'], 'border-x': ['border-left-width', 'border-right-width'], 'border-y': ['border-top-width', 'border-bottom-width'], 'border-t': ['border-top-width'], 'border-r': ['border-right-width'], 'border-b': ['border-bottom-width'], 'border-l': ['border-left-width'] });
       return sides[prefix].map(p => [p, value]);
     }
     case 'ring':
@@ -528,7 +711,7 @@ function namedUtility(name, negative, theme) {
   };
   let m;
 
-  const simple = {
+  const simple = dict({
     'aspect-auto': [['aspect-ratio', 'auto']], 'aspect-square': [['aspect-ratio', '1 / 1']], 'aspect-video': [['aspect-ratio', '16 / 9']],
     grow: [['flex-grow', '1']], 'grow-0': [['flex-grow', '0']], shrink: [['flex-shrink', '1']], 'shrink-0': [['flex-shrink', '0']],
     'text-ellipsis': [['text-overflow', 'ellipsis']], 'text-clip': [['text-overflow', 'clip']],
@@ -550,15 +733,15 @@ function namedUtility(name, negative, theme) {
     'will-change-contents': [['will-change', 'contents']], 'will-change-transform': [['will-change', 'transform']],
     'line-clamp-none': [['overflow', 'visible'], ['display', 'block'], ['-webkit-box-orient', 'horizontal'], ['-webkit-line-clamp', 'none']],
     'filter-none': [['filter', 'none']], 'backdrop-filter-none': [['backdrop-filter', 'none']],
-  };
+  });
   if (!negative && simple[name]) return { decls: simple[name] };
 
   if (!negative && (m = /^size-(.+)$/.exec(name))) {
-    const v = spacingOr(m[1], { auto: 'auto', full: '100%', min: 'min-content', max: 'max-content', fit: 'fit-content' });
+    const v = spacingOr(m[1], dict({ auto: 'auto', full: '100%', min: 'min-content', max: 'max-content', fit: 'fit-content' }));
     return v !== null && v !== undefined ? { decls: [['width', v], ['height', v]] } : null;
   }
   if (!negative && (m = /^basis-(.+)$/.exec(name))) {
-    const v = spacingOr(m[1], { auto: 'auto', full: '100%' });
+    const v = spacingOr(m[1], dict({ auto: 'auto', full: '100%' }));
     return v !== null && v !== undefined ? { decls: [['flex-basis', v]] } : null;
   }
   if ((m = /^indent-(.+)$/.exec(name)) && theme.spacing[m[1]] !== undefined) {
@@ -594,11 +777,11 @@ function namedUtility(name, negative, theme) {
     const key = filterMatch[3] || '';
     if (kind === 'opacity' && !backdrop) return null;
     if (kind === 'drop-shadow' && backdrop) return null;
-    const scales = {
+    const scales = dict({
       blur: BLUR, brightness: BRIGHTNESS, contrast: CONTRAST, grayscale: PERCENT_TOGGLE, invert: PERCENT_TOGGLE,
       sepia: PERCENT_TOGGLE, saturate: SATURATE, 'hue-rotate': HUE_ROTATE, 'drop-shadow': DROP_SHADOW,
       opacity: theme.opacity,
-    };
+    });
     let value = lookup(scales[kind], key);
     if (value === undefined) return null;
     if (negative) {
@@ -725,44 +908,51 @@ function buildRule(token, baseline, theme) {
   const media = [];
   const supports = [];
   let mediaRank = 0;
+  let variantMask = 0;
   let print = false;
   const pseudoClasses = [];
   const pseudoElements = [];
   const templates = [];
   let prefix = '';
+  const rankMedia = rank => { mediaRank = Math.max(mediaRank, rank); };
+  const markVariant = name => { variantMask += Math.pow(2, variantSlot(name)); };
   for (let i = 0; i < split.variants.length; i++) {
     const v = split.variants[i];
     let m;
     let state;
     if (theme.screens[v]) {
       media.push(`(min-width: ${theme.screens[v]})`);
-      mediaRank = Math.max(mediaRank, 1 + theme.screenOrder.indexOf(v));
+      rankMedia(MEDIA_RANK.screen + theme.screenOrder.indexOf(v));
     } else if (MEDIA_FEATURES[v]) {
       media.push(MEDIA_FEATURES[v]);
-      mediaRank = Math.max(mediaRank, 100 + Object.keys(MEDIA_FEATURES).indexOf(v));
+      rankMedia(MEDIA_RANK[v]);
     } else if (v === 'print') {
       print = true;
-      mediaRank = Math.max(mediaRank, 200);
+      rankMedia(MEDIA_RANK.print);
     } else if ((state = stateSelector(v))) {
       pseudoClasses.push(state);
+      markVariant(v);
     } else if (PSEUDO_ELEMENTS[v]) {
       pseudoElements.push(PSEUDO_ELEMENTS[v]);
+      markVariant(v);
     } else if ((m = /^(group|peer)-(.+)$/.exec(v)) && (state = stateSelector(m[2]) || arbitraryState(m[2]))) {
       prefix += m[1] === 'group' ? `.group${state} ` : `.peer${state} ~ `;
+      markVariant(m[1]);
     } else if ((m = /^supports-\[(.+)\]$/.exec(v))) {
       supports.push(supportsCondition(decodeArbitrary(m[1])));
-      mediaRank = Math.max(mediaRank, 300);
+      rankMedia(MEDIA_RANK.supports);
     } else if ((m = /^\[(.+)\]$/.exec(v))) {
       // Arbitrary variant: [&>*], [&_p], [.dark_&], [@media(...)], [@supports(...)]
       const inner = decodeArbitrary(m[1]);
       if (/^@media\b/.test(inner)) {
         media.push(inner.replace(/^@media\s*/, ''));
-        mediaRank = Math.max(mediaRank, 250);
+        rankMedia(MEDIA_RANK.arbitraryMedia);
       } else if (/^@supports\b/.test(inner)) {
         supports.push(inner.replace(/^@supports\s*/, ''));
-        mediaRank = Math.max(mediaRank, 300);
+        rankMedia(MEDIA_RANK.supports);
       } else if (inner.indexOf('&') !== -1) {
         templates.push(inner);
+        markVariant('arbitrary');
       } else {
         return null;
       }
@@ -771,11 +961,10 @@ function buildRule(token, baseline, theme) {
     }
   }
 
-  const hasAtRule = media.length > 0 || print || supports.length > 0;
-  // Plain 1.9 classes are already in index.css. Classes with a media variant
-  // are re-emitted so they cascade after everything they should override.
-  if (baseline.defined.has(token) && !hasAtRule) return null;
-
+  // Every class the source uses is emitted here, including ones 1.9 already
+  // puts in index.css: this file loads last, so a 1.9 class left out of it
+  // would always lose to the classes in it (bg-opacity-50 next to bg-[#123]),
+  // whatever Tailwind's order says. Emitting them all lets one sort decide.
   const resolved = resolveUtility(utility, baseline, theme);
   if (!resolved || resolved.length === 0) return null;
 
@@ -805,7 +994,8 @@ function buildRule(token, baseline, theme) {
     query,
     supports: supports.length > 0 ? supports.join(' and ') : null,
     mediaRank,
-    variantCount: split.variants.length,
+    variantMask,
+    order: utilityOrder(utility, resolved, baseline),
     declCount: resolved.reduce((n, r) => n + r.decls.length, 0),
     needs,
   };
@@ -828,7 +1018,9 @@ function walk(dir, out) {
 /**
  * Splits source text into candidate class names. Quotes, `;`, braces and
  * angle brackets separate tokens only outside `[...]`, so `[&>*]:p-2` and
- * `bg-[url('/a.png')]` stay whole; whitespace always separates.
+ * `bg-[url('/a.png')]` stay whole; whitespace always separates. A `[` directly
+ * before a quote is JavaScript (`['w-[3px]', …]`, `obj['key']`), not a class,
+ * so it separates too.
  */
 function tokenize(text) {
   const out = [];
@@ -836,7 +1028,10 @@ function tokenize(text) {
   let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
-    if (/\s/.test(c) || (depth === 0 && /["'`;{}<>]/.test(c))) {
+    const separates = /\s/.test(c) ||
+      (depth === 0 && /["'`;{}<>]/.test(c)) ||
+      (depth === 0 && c === '[' && /["'`]/.test(text[i + 1] || ''));
+    if (separates) {
       if (current) out.push(current);
       current = '';
       depth = 0;
@@ -869,10 +1064,19 @@ const BASE_CSS = {
   backdrop: `*, ::before, ::after {\n${BACKDROP_FILTERS.map(f => `  --tw-backdrop-${f}: ${EMPTY};`).join('\n')}\n}`,
 };
 
+/**
+ * Tailwind's cascade order: rules without media conditions first, then by
+ * media kind (screen sizes last, smallest first); within that, plain
+ * utilities before variants (in variant order); within that, utility order
+ * (1.9's own, so px-* follows p-* and bg-opacity-* follows bg-*). Equal
+ * positions put rules setting more properties first, so pl-[..] follows
+ * px-[..] as it would in Tailwind.
+ */
 function render(rules) {
   rules.sort((a, b) =>
     a.mediaRank - b.mediaRank ||
-    a.variantCount - b.variantCount ||
+    a.variantMask - b.variantMask ||
+    a.order - b.order ||
     b.declCount - a.declCount ||
     (a.token < b.token ? -1 : a.token > b.token ? 1 : 0));
 
@@ -881,7 +1085,7 @@ function render(rules) {
 
   const out = [
     '/* Generated by scripts/tailwind-jit.js. Do not edit: changes are overwritten. */',
-    '/* Tailwind 3 classes that the installed Tailwind 1.9 cannot generate. */',
+    '/* Every Tailwind class used in src/, in Tailwind order, including new syntax 1.9 cannot generate. */',
   ];
   needs.forEach(n => out.push(BASE_CSS[n]));
 
@@ -927,7 +1131,7 @@ function run() {
     const theme = loadTheme();
     return buildBaseline().then(baseline => {
       const result = generate(baseline, theme);
-      log(`${result.count} on-demand classes${result.changed ? ' written to' : ', unchanged in'} src/tailwind-jit.css (${Date.now() - started}ms)`);
+      log(`${result.count} classes${result.changed ? ' written to' : ', unchanged in'} src/tailwind-jit.css (${Date.now() - started}ms)`);
       return { baseline, theme };
     });
   });
@@ -946,7 +1150,7 @@ function watch() {
         ? run()
         : Promise.resolve(state).then(s => {
           const result = generate(s.baseline, s.theme);
-          if (result.changed) log(`${result.count} on-demand classes written to src/tailwind-jit.css`);
+          if (result.changed) log(`${result.count} classes written to src/tailwind-jit.css`);
           return s;
         });
       configChanged = false;
@@ -956,14 +1160,29 @@ function watch() {
 
   run().then(s => { state = s; }).catch(err => log(`failed: ${err.message}`));
 
+  // A watcher error (the directory renamed or removed) is reported, not thrown:
+  // this runs inside the dev server, and an unhandled 'error' would end it.
+  const onError = err => log(`watcher stopped: ${err.message}. Restart npm start to resume.`);
+
   fs.watch(SRC_DIR, { recursive: true }, (event, file) => {
     if (!file) return;
     const full = path.join(SRC_DIR, file);
     if (full === OUT_FILE || !SOURCE_EXT.test(file)) return;
     schedule();
-  });
-  fs.watch(CONFIG_FILE, () => { configChanged = true; schedule(); });
-  log('watching src/ for class changes');
+  }).on('error', onError);
+
+  // The config and palette are watched through their directory: editors that
+  // save by writing a new file and renaming it replace the file, which a
+  // watcher on the file itself stops seeing after the first save.
+  const configNames = [path.basename(CONFIG_FILE), path.basename(PALETTE_FILE)];
+  fs.watch(ROOT, (event, file) => {
+    if (file && configNames.indexOf(String(file)) !== -1) {
+      configChanged = true;
+      schedule();
+    }
+  }).on('error', onError);
+
+  log('watching src/, tailwind.config.js and tailwind.palette.js for changes');
 }
 
 module.exports = { run, watch, buildRule, resolveUtility, loadTheme, buildBaseline, render, tokenize };

@@ -21,9 +21,10 @@
     "start": "craco start",
     "prebuild": "node scripts/tailwind-jit.js",
     "build": "craco build",
-    "pretest": "node scripts/tailwind-jit.js",
+    "pretest": "node scripts/tailwind-jit.js && node scripts/tailwind-jit.test.js",
     "test": "craco test",
     "tailwind:jit": "node scripts/tailwind-jit.js",
+    "test:tailwind": "node scripts/tailwind-jit.test.js",
     "eject": "react-scripts eject",
     "postinstall": "node scripts/fix-minimatch-types.js && node scripts/fix-react-error-overlay.js"
   },
