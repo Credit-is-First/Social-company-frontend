@@ -23,7 +23,9 @@ export type NotificationType =
   | 'loan_requested'
   | 'loan_approved'
   | 'loan_declined'
-  | 'book_review_requested';
+  | 'book_review_requested'
+  | 'book_approved'
+  | 'book_declined';
 
 /** Named AppNotification so it does not shadow the browser's Notification. */
 export interface AppNotification {
