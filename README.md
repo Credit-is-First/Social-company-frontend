@@ -26,7 +26,8 @@ compiler run on it too:
 ```bash
 npm start              # dev server on http://localhost:5000 (API calls proxied to :5001)
 npm run build          # production build in build/
-npm test               # Jest via CRACO (runs the Tailwind compiler tests first)
+npm test               # Jest via CRACO: 12 unit tests (utils/dates, the reminder summary),
+                       # after the Tailwind compiler tests
 npm run tailwind:jit   # regenerate src/tailwind-jit.css by hand (normally automatic)
 npm run test:tailwind  # the Tailwind compiler's own tests
 npm run docs:tailwind  # regenerate the Tailwind documentation site (docs/tailwind)
@@ -94,7 +95,7 @@ src/
 ├── pages/        Auth/*, BrowseBooks, Dashboard, MyPage/*, Manager/*, NotFound
 ├── services/     api.ts — the single Axios client, session refresh, all endpoints
 ├── types/        shared TypeScript types
-└── utils/        confirm dialog, toast helpers
+└── utils/        confirm dialog, toast helpers, dates.ts (calendar dates)
 ```
 
 ## Notifications
@@ -108,6 +109,25 @@ reloads the list. `NotificationBell` renders it in both layouts.
 In development, `src/setupProxy.js` forwards `/socket.io` to the backend with WebSocket
 support: the `proxy` field in `package.json` does not proxy WebSocket upgrades, so
 without it socket.io would fall back to HTTP long-polling.
+
+## Lending Management
+
+Tabs: All Loans, Pending Requests, Active Loans (every book still out — `GET /loans/active`
+returns active and overdue loans, earliest due first) and **Overdue**, which filters those to
+the overdue ones and shows a red count badge on every tab (All and Active already contain
+the overdue loans, so only Pending makes an extra request for the count). **Send reminders**
+(staff with `book_lending:approve`) calls `POST /loans/reminders/run` and reports the result
+with `describeReminderRun`; the backend also runs the same job hourly.
+
+## Calendar dates
+
+Loan dates, published dates and dates of birth arrive as `YYYY-MM-DD`. Never pass them to
+`new Date(...)`: that reads them as UTC midnight, which west of UTC is the evening before, so
+they used to display a day early. Use `utils/dates.ts` — `formatDateOnly` for display,
+`toDateInputValue` for `<input type="date">`, `todayDateOnly` / `dateOnlyFromToday` for
+defaults (not `toISOString()`, which gives tomorrow's date every evening), and
+`isBeforeToday` for due-date checks. Real timestamps such as `createdAt` are fine with
+`new Date`.
 
 ## Session handling
 
