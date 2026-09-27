@@ -19,6 +19,24 @@ export interface Book {
   updatedAt: string;
 }
 
+export type NotificationType =
+  | 'loan_requested'
+  | 'loan_approved'
+  | 'loan_declined'
+  | 'book_review_requested';
+
+/** Named AppNotification so it does not shadow the browser's Notification. */
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  /** Route to open when the notification is clicked. */
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 export interface Role {
   id: string;
   name: string;

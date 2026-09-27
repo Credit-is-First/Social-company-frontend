@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { Book, User, Loan, LoanStatus, Role, Group, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, UpdateProfileDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse, CreateGroupDto, UpdateGroupDto } from '../types';
+import { Book, User, Loan, LoanStatus, Role, Group, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, UpdateProfileDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse, CreateGroupDto, UpdateGroupDto, AppNotification } from '../types';
 
 const api = axios.create({
   baseURL: '',
@@ -357,8 +357,17 @@ export interface DashboardStats {
 }
 
 export const dashboardAPI = {
-  getStats: (): Promise<AxiosResponse<DashboardStats>> => 
+  getStats: (): Promise<AxiosResponse<DashboardStats>> =>
     api.get('/dashboard/stats'),
+};
+
+export const notificationsAPI = {
+  list: (limit: number = 20): Promise<AxiosResponse<{ items: AppNotification[]; unreadCount: number }>> =>
+    api.get('/notifications', { params: { limit } }),
+  markRead: (id: string): Promise<AxiosResponse<{ unreadCount: number }>> =>
+    api.patch(`/notifications/${id}/read`),
+  markAllRead: (): Promise<AxiosResponse<{ unreadCount: number }>> =>
+    api.patch('/notifications/read-all'),
 };
 
 // Attach the in-memory access token. Because it is an explicit header rather

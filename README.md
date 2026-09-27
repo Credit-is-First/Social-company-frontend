@@ -6,8 +6,11 @@ file covers working on the frontend itself.
 
 ## Requirements
 
-- **Node.js 12.1.0** (declared in `package.json` `engines`), offline: work with
-  the packages already in `node_modules`.
+- **Node.js 12.1.0** (declared in `package.json` `engines`); new packages must run on it.
+- **yarn** for installing packages (`yarn install`, `yarn add`). `node_modules` matches
+  `yarn.lock`; `package-lock.json` is stale. npm would also apply the `overrides` entry
+  in `package.json`, which puts postcss 8 under cssnano 4 and breaks `npm run build`
+  ("Cannot read property 'unprefixed' of undefined"). Running scripts with npm is fine.
 - The backend running on `http://localhost:5001`.
 
 If Node 12.1.0 is not your default `node`, run npm through its own binary with
@@ -84,8 +87,8 @@ Run automatically from `postinstall`; both are idempotent.
 
 ```
 src/
-├── components/   AuthRoute, RoleProtectedRoute, Toast, UserAvatar
-├── contexts/     AuthContext (session), ToastContext, UserSearchContext
+├── components/   AuthRoute, RoleProtectedRoute, Toast, UserAvatar, NotificationBell
+├── contexts/     AuthContext (session), ToastContext, UserSearchContext, NotificationContext
 ├── hooks/        useUserPhoto (authenticated photo → object URL)
 ├── layouts/      UserLayout, ManagerLayout
 ├── pages/        Auth/*, BrowseBooks, Dashboard, MyPage/*, Manager/*, NotFound
@@ -93,6 +96,18 @@ src/
 ├── types/        shared TypeScript types
 └── utils/        confirm dialog, toast helpers
 ```
+
+## Notifications
+
+`NotificationContext` loads the bell's list from `/notifications` and keeps it live over
+socket.io (`socket.io-client` 2.x, matching the backend). After connecting it sends the
+in-memory access token in an `authenticate` message; if that is refused (the token
+expired while offline) it refreshes the session once and reconnects, and every reconnect
+reloads the list. `NotificationBell` renders it in both layouts.
+
+In development, `src/setupProxy.js` forwards `/socket.io` to the backend with WebSocket
+support: the `proxy` field in `package.json` does not proxy WebSocket upgrades, so
+without it socket.io would fall back to HTTP long-polling.
 
 ## Session handling
 

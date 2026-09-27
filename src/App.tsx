@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { UserSearchProvider } from './contexts/UserSearchContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import ToastContainer from './components/ToastContainer';
 import { setToastContext } from './utils/notifications';
 import AuthRoute from './components/AuthRoute';
@@ -111,7 +112,9 @@ const App: React.FC = () => {
     <Router>
       <ToastProvider>
         <AuthProvider>
-          <AppContent />
+          <NotificationProvider>
+            <AppContent />
+          </NotificationProvider>
         </AuthProvider>
       </ToastProvider>
     </Router>
