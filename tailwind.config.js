@@ -401,6 +401,19 @@ module.exports = {
         '1.5': '0.375rem',
         '2.5': '0.625rem',
         '3.5': '0.875rem',
+        // Steps Tailwind 2 added to the scale (w-80, p-7, gap-14, …).
+        7: '1.75rem',
+        9: '2.25rem',
+        11: '2.75rem',
+        14: '3.5rem',
+        28: '7rem',
+        36: '9rem',
+        44: '11rem',
+        52: '13rem',
+        60: '15rem',
+        72: '18rem',
+        80: '20rem',
+        96: '24rem',
       },
       // 1.9 only has inset-0 / inset-auto; Tailwind 2 accepts the spacing scale.
       inset: theme => ({
