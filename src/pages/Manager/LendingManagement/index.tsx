@@ -7,12 +7,13 @@ import { notify } from '../../../utils/notifications';
 import { useConfirmDialog } from '../../../utils/confirmDialog';
 import { useAuth } from '../../../contexts/AuthContext';
 
-type FilterType = 'all' | 'pending' | 'active';
+type FilterType = 'all' | 'pending' | 'active' | 'overdue';
 
 const FILTERS: Array<{ key: FilterType; label: string }> = [
   { key: 'all', label: 'All Loans' },
   { key: 'pending', label: 'Pending Requests' },
   { key: 'active', label: 'Active Loans' },
+  { key: 'overdue', label: 'Overdue' },
 ];
 
 const LendingManagement: React.FC = () => {
@@ -34,6 +35,10 @@ const LendingManagement: React.FC = () => {
       let response;
       if (filter === 'active') {
         response = await loansAPI.getActive();
+      } else if (filter === 'overdue') {
+        // Active loans already include overdue ones, earliest due first.
+        response = await loansAPI.getActive();
+        response = { ...response, data: response.data.filter(loan => loan.status === 'overdue') };
       } else if (filter === 'pending') {
         response = await loansAPI.getPending();
       } else {
@@ -286,7 +291,9 @@ const LendingManagement: React.FC = () => {
             </tbody>
           </table>
           {loans.length === 0 && (
-            <div className="text-center py-8 text-gray-500">No loans found</div>
+            <div className="text-center py-8 text-gray-500">
+              {filter === 'overdue' ? 'No overdue loans' : 'No loans found'}
+            </div>
           )}
         </div>
       )}
