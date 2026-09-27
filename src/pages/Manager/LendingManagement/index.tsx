@@ -5,6 +5,7 @@ import { Loan, LoanStatus } from '../../../types';
 import LoanModal from './components/LoanModal';
 import { notify } from '../../../utils/notifications';
 import { useConfirmDialog } from '../../../utils/confirmDialog';
+import { formatDateOnly } from '../../../utils/dates';
 import { useAuth } from '../../../contexts/AuthContext';
 
 type FilterType = 'all' | 'pending' | 'active' | 'overdue';
@@ -253,14 +254,14 @@ const LendingManagement: React.FC = () => {
                     {loan.user ? loan.user.name : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(loan.borrowDate).toLocaleDateString()}
+                    {formatDateOnly(loan.borrowDate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(loan.dueDate).toLocaleDateString()}
+                    {formatDateOnly(loan.dueDate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {loan.returnDate
-                      ? new Date(loan.returnDate).toLocaleDateString()
+                      ? formatDateOnly(loan.returnDate)
                       : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

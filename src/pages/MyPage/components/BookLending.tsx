@@ -4,6 +4,7 @@ import { Loan, LoanStatus } from '../../../types';
 import { notify } from '../../../utils/notifications';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useConfirmDialog } from '../../../utils/confirmDialog';
+import { formatDateOnly, isBeforeToday } from '../../../utils/dates';
 
 const BookLending: React.FC = () => {
   const { user } = useAuth();
@@ -49,13 +50,10 @@ const BookLending: React.FC = () => {
     }
   };
 
-  const isOverdue = (dueDate: string): boolean => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(dueDate);
-    due.setHours(0, 0, 0, 0);
-    return due < today;
-  };
+  // Overdue once the reminder job has marked it, or already if it is still
+  // active past its due date (between runs of the job).
+  const isOverdue = (loan: Loan): boolean =>
+    loan.status === 'overdue' || (loan.status === 'active' && isBeforeToday(loan.dueDate));
 
   if (loading) {
     return (
@@ -152,7 +150,7 @@ const BookLending: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredLoans.map((loan) => {
-                const overdue = isOverdue(loan.dueDate) && loan.status === 'active';
+                const overdue = isOverdue(loan);
                 return (
                   <tr key={loan.id} className={overdue ? 'bg-red-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -166,11 +164,11 @@ const BookLending: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(loan.borrowDate).toLocaleDateString()}
+                      {formatDateOnly(loan.borrowDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm ${overdue ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
-                        {new Date(loan.dueDate).toLocaleDateString()}
+                        {formatDateOnly(loan.dueDate)}
                       </div>
                       {overdue && (
                         <div className="text-xs text-red-500">Overdue</div>
@@ -178,7 +176,7 @@ const BookLending: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {loan.returnDate
-                        ? new Date(loan.returnDate).toLocaleDateString()
+                        ? formatDateOnly(loan.returnDate)
                         : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

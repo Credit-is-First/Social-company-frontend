@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent } from 
 import { loansAPI, booksAPI, usersAPI } from '../../../../services/api';
 import { Book, User, CreateLoanDto } from '../../../../types';
 import { notify } from '../../../../utils/notifications';
+import { dateOnlyFromToday, todayDateOnly } from '../../../../utils/dates';
 
 interface LoanModalProps {
   onClose: () => void;
@@ -16,13 +17,10 @@ interface LoanFormData {
 
 const BOOK_PICKER_LIMIT = 100;
 
-const todayISO = (): string => new Date().toISOString().split('T')[0];
+// Local calendar dates: toISOString() would give tomorrow's date every evening west of UTC.
+const todayISO = (): string => todayDateOnly();
 
-const defaultDueDateISO = (): string => {
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + 14);
-  return dueDate.toISOString().split('T')[0];
-};
+const defaultDueDateISO = (): string => dateOnlyFromToday(14);
 
 const LoanModal: React.FC<LoanModalProps> = ({ onClose }) => {
   const [formData, setFormData] = useState<LoanFormData>({

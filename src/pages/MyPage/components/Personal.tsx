@@ -5,6 +5,7 @@ import { useUserPhoto } from '../../../hooks/useUserPhoto';
 import { Gender } from '../../../types';
 import { notify } from '../../../utils/notifications';
 import { useConfirmDialog } from '../../../utils/confirmDialog';
+import { formatDateOnly, toDateInputValue, todayDateOnly } from '../../../utils/dates';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
 
 const GENDER_OPTIONS: Array<{ value: Gender; label: string }> = [
@@ -25,11 +26,9 @@ const genderLabel = (value?: Gender): string => {
   return found ? found.label : 'Not provided';
 };
 
-const formatDate = (value?: string): string =>
-  value ? new Date(value).toLocaleDateString() : 'Not provided';
+const formatDate = (value?: string): string => formatDateOnly(value, 'Not provided');
 
-/** The API returns a full ISO timestamp; the date input needs YYYY-MM-DD. */
-const toDateInput = (value?: string): string => (value ? value.split('T')[0] : '');
+const toDateInput = (value?: string): string => toDateInputValue(value);
 
 const Personal: React.FC = () => {
   const { user, updateCurrentUser } = useAuth();
@@ -344,7 +343,7 @@ const Personal: React.FC = () => {
                   <input
                     type="date"
                     value={formData.dateOfBirth}
-                    max={new Date().toISOString().split('T')[0]}
+                    max={todayDateOnly()}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                     required
                     className={inputClass}

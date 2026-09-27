@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import { todayDateOnly } from '../utils/dates';
 import { Book, User, Loan, LoanStatus, Role, Group, CreateBookDto, UpdateBookDto, CreateUserDto, UpdateUserDto, UpdateProfileDto, CreateLoanDto, UpdateLoanDto, RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, AuthResponse, CreateGroupDto, UpdateGroupDto, AppNotification } from '../types';
 
 const api = axios.create({
@@ -142,7 +143,7 @@ export const booksAPI = {
       responseType: 'blob', // Important for file download
     });
 
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = todayDateOnly();
     triggerBlobDownload(response.data, `books-export-${timestamp}.csv`, 'text/csv');
   },
   // Ebook files are behind auth now, so they have to be fetched with the token

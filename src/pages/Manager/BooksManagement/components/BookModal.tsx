@@ -2,6 +2,7 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { booksAPI } from '../../../../services/api';
 import { Book, CreateBookDto } from '../../../../types';
 import { notify } from '../../../../utils/notifications';
+import { toDateInputValue } from '../../../../utils/dates';
 
 interface BookModalProps {
   book: Book | null;
@@ -51,7 +52,7 @@ const BookModal: React.FC<BookModalProps> = ({ book, onClose }) => {
         category: book.category || '',
         totalCopies: book.totalCopies || 1,
         description: book.description || '',
-        publishedDate: book.publishedDate ? book.publishedDate.split('T')[0] : '',
+        publishedDate: toDateInputValue(book.publishedDate),
         isEbook: book.isEbook || false,
       });
       setSelectedFile(null);
