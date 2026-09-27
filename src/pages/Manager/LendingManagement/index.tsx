@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { loansAPI } from '../../../services/api';
+import { describeReminderRun } from './describeReminderRun';
 import { Loan, LoanStatus } from '../../../types';
 import LoanModal from './components/LoanModal';
 import { notify } from '../../../utils/notifications';
@@ -20,6 +21,7 @@ const LendingManagement: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [runningReminders, setRunningReminders] = useState<boolean>(false);
   const { confirm, Dialog } = useConfirmDialog();
 
   const canApprove = hasRole('book_lending:approve');
@@ -124,6 +126,21 @@ const LendingManagement: React.FC = () => {
     );
   };
 
+  const handleRunReminders = async (): Promise<void> => {
+    setRunningReminders(true);
+    try {
+      const { data } = await loansAPI.runReminders();
+      notify.success(describeReminderRun(data));
+      // Loans may have just become overdue.
+      fetchLoans();
+    } catch (error: any) {
+      console.error('Error running reminders:', error);
+      notify.error(error.response?.data?.message || 'Error sending reminders');
+    } finally {
+      setRunningReminders(false);
+    }
+  };
+
   const handleModalClose = (): void => {
     setIsModalOpen(false);
     fetchLoans();
@@ -154,12 +171,22 @@ const LendingManagement: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div></div>
         {canApprove && (
-          <button
-            onClick={handleCreate}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-          >
-            + New Loan
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleRunReminders}
+              disabled={runningReminders}
+              title="Mark loans past their due date as overdue and remind borrowers now. This also runs automatically every hour; nobody is reminded twice."
+              className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {runningReminders ? 'Sending…' : 'Send reminders'}
+            </button>
+            <button
+              onClick={handleCreate}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            >
+              + New Loan
+            </button>
+          </div>
         )}
       </div>
 

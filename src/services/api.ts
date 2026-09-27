@@ -274,9 +274,19 @@ export const loansAPI = {
     api.patch(`/loans/${id}/return`),
   delete: (id: string): Promise<AxiosResponse<void>> =>
     api.delete(`/loans/${id}`),
-  cancelMyLoan: (id: string): Promise<AxiosResponse<void>> => 
+  cancelMyLoan: (id: string): Promise<AxiosResponse<void>> =>
     api.delete(`/loans/my/${id}`),
+  /** Marks overdue loans and sends due/overdue reminders now (also runs hourly). */
+  runReminders: (): Promise<AxiosResponse<ReminderRunResult>> =>
+    api.post('/loans/reminders/run'),
 };
+
+export interface ReminderRunResult {
+  markedOverdue: number;
+  dueSoonReminders: number;
+  overdueReminders: number;
+  newlyOverdue: number;
+}
 
 export const authAPI = {
   checkSetup: (): Promise<AxiosResponse<{ needsSetup: boolean }>> => 
