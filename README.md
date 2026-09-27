@@ -26,7 +26,14 @@ npm run build          # production build in build/
 npm test               # Jest via CRACO (runs the Tailwind compiler tests first)
 npm run tailwind:jit   # regenerate src/tailwind-jit.css by hand (normally automatic)
 npm run test:tailwind  # the Tailwind compiler's own tests
+npm run docs:tailwind  # regenerate the Tailwind documentation site (docs/tailwind)
 ```
+
+**Tailwind documentation site:** [`docs/tailwind`](docs/tailwind/README.md) documents
+every class this setup provides, with its CSS and a live preview, generated from the
+real config, palette and compiler. Serve it with
+`python -m http.server 5050 --bind 127.0.0.1 --directory docs/tailwind` and open
+<http://localhost:5050>. Regenerate it after changing any of the three.
 
 `prestart`, `prebuild` and `pretest` run the Tailwind on-demand compiler first (`pretest`
 also runs its tests), and `postinstall` applies two small patches to installed packages (see

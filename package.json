@@ -25,6 +25,7 @@
     "test": "craco test",
     "tailwind:jit": "node scripts/tailwind-jit.js",
     "test:tailwind": "node scripts/tailwind-jit.test.js",
+    "docs:tailwind": "node docs/tailwind/generate.js",
     "eject": "react-scripts eject",
     "postinstall": "node scripts/fix-minimatch-types.js && node scripts/fix-react-error-overlay.js"
   },
