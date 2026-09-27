@@ -84,7 +84,8 @@ const BookLending: React.FC = () => {
   const filteredLoans = filter === 'returned' 
     ? loans.filter(loan => loan.status === 'returned' || loan.returnDate)
     : filter === 'active'
-    ? loans.filter(loan => loan.status === 'active' && !loan.returnDate)
+    ? // Every book still out: overdue loans are the ones a member most needs to see.
+      loans.filter(loan => (loan.status === 'active' || loan.status === 'overdue') && !loan.returnDate)
     : loans;
 
   return (
@@ -181,7 +182,7 @@ const BookLending: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded text-xs ${getStatusColor(loan.status)}`}>
+                        <span className={`px-2 py-1 rounded text-xs ${getStatusColor(overdue ? 'overdue' : loan.status)}`}>
                           {overdue ? 'Overdue' : loan.status}
                         </span>
                         {/* Only a request can be withdrawn; an active loan ends when the book is returned. */}
