@@ -127,7 +127,6 @@ export interface CreateGroupDto {
   name: string;
   description?: string;
   roleIds?: string[];
-  isDefault?: boolean;
 }
 
 export interface UpdateGroupDto {

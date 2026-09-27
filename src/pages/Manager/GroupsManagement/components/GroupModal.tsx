@@ -13,7 +13,6 @@ interface GroupFormData {
   name: string;
   description: string;
   roleIds: string[];
-  isDefault: boolean;
 }
 
 const GroupModal: React.FC<GroupModalProps> = ({ group, roles, onClose }) => {
@@ -21,7 +20,6 @@ const GroupModal: React.FC<GroupModalProps> = ({ group, roles, onClose }) => {
     name: '',
     description: '',
     roleIds: [],
-    isDefault: false,
   });
 
   useEffect(() => {
@@ -30,7 +28,6 @@ const GroupModal: React.FC<GroupModalProps> = ({ group, roles, onClose }) => {
         name: group.name || '',
         description: group.description || '',
         roleIds: group.roles?.map(r => r.id) || [],
-        isDefault: group.isDefault || false,
       });
     }
   }, [group]);
@@ -70,7 +67,6 @@ const GroupModal: React.FC<GroupModalProps> = ({ group, roles, onClose }) => {
           name: formData.name,
           description: formData.description || undefined,
           roleIds: formData.roleIds.length > 0 ? formData.roleIds : undefined,
-          isDefault: formData.isDefault,
         };
         await groupsAPI.create(createData);
         notify.success('Group created successfully');
@@ -115,21 +111,6 @@ const GroupModal: React.FC<GroupModalProps> = ({ group, roles, onClose }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
-          {!group && (
-            <div className="mb-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  name="isDefault"
-                  checked={formData.isDefault}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium">Set as default group for new users</span>
-              </label>
-            </div>
-          )}
 
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Roles</label>
