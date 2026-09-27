@@ -16,6 +16,8 @@ const FILTERS: Array<{ key: FilterType; label: string }> = [
   { key: 'overdue', label: 'Overdue' },
 ];
 
+const countOverdue = (loans: Loan[]): number => loans.filter(loan => loan.status === 'overdue').length;
+
 const LendingManagement: React.FC = () => {
   const { hasRole } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -23,6 +25,7 @@ const LendingManagement: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [runningReminders, setRunningReminders] = useState<boolean>(false);
+  const [overdueCount, setOverdueCount] = useState<number>(0);
   const { confirm, Dialog } = useConfirmDialog();
 
   const canApprove = hasRole('book_lending:approve');
@@ -32,19 +35,24 @@ const LendingManagement: React.FC = () => {
   const fetchLoans = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
-      let response;
-      if (filter === 'active') {
-        response = await loansAPI.getActive();
-      } else if (filter === 'overdue') {
-        // Active loans already include overdue ones, earliest due first.
-        response = await loansAPI.getActive();
-        response = { ...response, data: response.data.filter(loan => loan.status === 'overdue') };
+      // All loans and active loans both contain every overdue loan, so the
+      // Overdue tab's count comes from the same response; only the pending
+      // list needs a second request for it.
+      let loaded: Loan[];
+      if (filter === 'active' || filter === 'overdue') {
+        // Active loans include overdue ones, earliest due first.
+        const active = (await loansAPI.getActive()).data;
+        setOverdueCount(countOverdue(active));
+        loaded = filter === 'overdue' ? active.filter(loan => loan.status === 'overdue') : active;
       } else if (filter === 'pending') {
-        response = await loansAPI.getPending();
+        const [pending, active] = await Promise.all([loansAPI.getPending(), loansAPI.getActive()]);
+        setOverdueCount(countOverdue(active.data));
+        loaded = pending.data;
       } else {
-        response = await loansAPI.getAll();
+        loaded = (await loansAPI.getAll()).data;
+        setOverdueCount(countOverdue(loaded));
       }
-      setLoans(response.data);
+      setLoans(loaded);
     } catch (error) {
       console.error('Error fetching loans:', error);
       notify.error('Error fetching loans');
@@ -207,6 +215,14 @@ const LendingManagement: React.FC = () => {
             }`}
           >
             {option.label}
+            {option.key === 'overdue' && overdueCount > 0 && (
+              <span
+                className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold"
+                aria-label={`${overdueCount} overdue`}
+              >
+                {overdueCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
