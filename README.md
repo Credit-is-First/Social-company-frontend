@@ -26,7 +26,8 @@ compiler run on it too:
 ```bash
 npm start              # dev server on http://localhost:5000 (API calls proxied to :5001)
 npm run build          # production build in build/
-npm test               # Jest via CRACO: 12 unit tests (utils/dates, the reminder summary),
+npm test               # Jest via CRACO: 18 unit tests (utils/dates, the reminder summary,
+                       # notification recovery),
                        # after the Tailwind compiler tests
 npm run tailwind:jit   # regenerate src/tailwind-jit.css by hand (normally automatic)
 npm run test:tailwind  # the Tailwind compiler's own tests
@@ -102,9 +103,13 @@ src/
 
 `NotificationContext` loads the bell's list from `/notifications` and keeps it live over
 socket.io (`socket.io-client` 2.x, matching the backend). After connecting it sends the
-in-memory access token in an `authenticate` message; if that is refused (the token
-expired while offline) it refreshes the session once and reconnects, and every reconnect
-reloads the list. `NotificationBell` renders it in both layouts.
+in-memory access token in an `authenticate` message. The server drops the socket with
+`unauthorized` when that token expires or the account is blocked; the context then reuses
+a token the page has already renewed, or refreshes the session, retrying with backoff
+while the server is unreachable, and signs out if the session is gone
+(`notificationRecovery.ts`). Every reconnect reloads the list; a duplicate event is counted
+once, and a list requested for a previous user is discarded. `NotificationBell` renders it
+in both layouts.
 
 In development, `src/setupProxy.js` forwards `/socket.io` to the backend with WebSocket
 support: the `proxy` field in `package.json` does not proxy WebSocket upgrades, so

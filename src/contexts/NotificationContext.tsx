@@ -1,12 +1,20 @@
-import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import io from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
-import { getAccessToken, notificationsAPI, refreshSession } from '../services/api';
+import { clearSession, getAccessToken, notificationsAPI, refreshSession } from '../services/api';
 import { AppNotification } from '../types';
+import { isSessionGone, mergeIncoming, retryDelayMs } from './notificationRecovery';
 
 /** How many of the latest notifications the bell keeps. */
 const LIST_LIMIT = 20;
+
+/**
+ * A token refused this soon after a successful refresh was not refused for
+ * being old: the account itself is no longer allowed (blocked or deleted), so
+ * refreshing again would only loop.
+ */
+const FRESH_TOKEN_MS = 10 * 1000;
 
 interface NotificationContextType {
   notifications: AppNotification[];
@@ -37,9 +45,11 @@ interface ReadEvent {
  *
  * The list comes from the REST API; new notifications arrive over socket.io.
  * After connecting, the socket sends the in-memory access token in an
- * `authenticate` message (never in the URL). If the server refuses it, the
- * token most likely expired while the socket was offline, so the session is
- * refreshed once and the socket reconnects. Every reconnect also reloads the
+ * `authenticate` message (never in the URL). The server drops the socket with
+ * `unauthorized` when that token expires or the account is blocked; the socket
+ * then signs in again with a renewed token, refreshing the session if needed
+ * and retrying with backoff while the server is unreachable. If the session
+ * turns out to be gone, the user is signed out. Every reconnect reloads the
  * list, so anything sent while disconnected still shows up.
  */
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -50,9 +60,20 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [connected, setConnected] = useState(false);
   const userId = user ? user.id : null;
 
+  // Bumped whenever the signed-in user changes, so a list requested for the
+  // previous user is never shown to the next one.
+  const generation = useRef(0);
+  // Ids of the notifications on show, so a repeated event is not counted twice.
+  const knownIds = useRef<Set<string>>(new Set());
+
   const load = useCallback(async () => {
+    const requestedFor = generation.current;
     try {
       const { data } = await notificationsAPI.list(LIST_LIMIT);
+      if (requestedFor !== generation.current) {
+        return;
+      }
+      knownIds.current = new Set(data.items.map(item => item.id));
       setNotifications(data.items);
       setUnreadCount(data.unreadCount);
     } catch (error) {
@@ -61,6 +82,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   useEffect(() => {
+    generation.current += 1;
+    knownIds.current = new Set();
     setNotifications([]);
     setUnreadCount(0);
     setConnected(false);
@@ -69,15 +92,44 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     let disposed = false;
-    let retriedAfterRefusal = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryAttempt = 0;
+    let lastSentToken: string | null = null;
+    let lastRefreshAt = 0;
     const socket = io('/notifications', { path: '/socket.io' });
 
+    // socket.io does not reconnect on its own after the server disconnects it.
+    const reconnect = () => {
+      if (!disposed) socket.connect();
+    };
+
+    // Renew the session, then sign the socket in again. While the server is
+    // unreachable (a restart, a network drop) keep trying with backoff; if it
+    // says the session is gone, sign out, which also closes this socket.
+    const recover = () => {
+      refreshSession()
+        .then(() => {
+          lastRefreshAt = Date.now();
+          retryAttempt = 0;
+          reconnect();
+        })
+        .catch(error => {
+          if (disposed) return;
+          if (isSessionGone(error)) {
+            clearSession();
+            return;
+          }
+          retryTimer = setTimeout(recover, retryDelayMs(retryAttempt));
+          retryAttempt += 1;
+        });
+    };
+
     socket.on('connect', () => {
-      socket.emit('authenticate', { token: getAccessToken() }, (result: { ok: boolean }) => {
+      lastSentToken = getAccessToken();
+      socket.emit('authenticate', { token: lastSentToken }, (result: { ok: boolean }) => {
         if (disposed || !result || !result.ok) {
           return;
         }
-        retriedAfterRefusal = false;
         setConnected(true);
         load();
       });
@@ -85,27 +137,30 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     socket.on('unauthorized', () => {
       setConnected(false);
-      // The server disconnects after refusing, and socket.io does not
-      // reconnect on its own after a server-side disconnect.
-      if (retriedAfterRefusal) {
+      if (disposed) return;
+      const current = getAccessToken();
+      if (current && current !== lastSentToken) {
+        // The page renewed its token meanwhile (an API call did): just use it.
+        reconnect();
         return;
       }
-      retriedAfterRefusal = true;
-      refreshSession()
-        .then(() => {
-          if (!disposed) socket.connect();
-        })
-        .catch(() => undefined); // Signed out: AuthContext takes it from here.
+      if (Date.now() - lastRefreshAt < FRESH_TOKEN_MS) {
+        // Refused straight after a refresh: the account is blocked or deleted.
+        // The next API call signs the user out; retrying here would loop.
+        return;
+      }
+      recover();
     });
 
     socket.on('disconnect', () => setConnected(false));
 
     socket.on('notification', (notification: AppNotification) => {
-      setNotifications(previous =>
-        previous.some(item => item.id === notification.id)
-          ? previous
-          : [notification, ...previous].slice(0, LIST_LIMIT),
-      );
+      // A reconnect's reload can already contain it: then it is not new.
+      if (knownIds.current.has(notification.id)) {
+        return;
+      }
+      knownIds.current.add(notification.id);
+      setNotifications(previous => mergeIncoming(previous, notification, LIST_LIMIT).list);
       setUnreadCount(count => count + 1);
       showToast(`${notification.title}: ${notification.message}`, 'info');
     });
@@ -125,6 +180,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     return () => {
       disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
       socket.close();
     };
   }, [userId, load, showToast]);
